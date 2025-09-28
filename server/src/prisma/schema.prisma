@@ -1,0 +1,511 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// #########################
+// User Management
+// ##########################
+
+model User {
+  id          String    @id @default(cuid())
+  email       String    @unique
+  phone       String?   @unique
+  name        String?
+  avatar      String?
+  dateOfBirth DateTime?
+  isAdmin     Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Auth relations
+  refreshTokens RefreshToken[]
+  otp           otp?
+
+  // Trading relations
+  wallet           Wallet?
+  portfolios       Portfolio[]
+  transactions     Transaction[]
+  watchlists       Watchlist[]
+  tradingOrders    TradingOrder[]
+  userPreferences  UserPreferences?
+  portfolioSnapshots PortfolioSnapshot[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  token      String   @unique
+  expiresAt  DateTime
+  clientInfo Json?
+  isRevoked  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([userId, token])
+  @@map("refresh_tokens")
+}
+
+model otp {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  otp       String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("otps")
+}
+
+// #########################
+// Groww Management
+// ##########################
+
+model GrowwAccessToken {
+  id        Int   @id @default(1)
+  token     String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("growws_access_tokens")
+}
+
+// #########################
+// Virtual Trading System
+// ##########################
+
+// Virtual wallet for each user - tracks virtual cash and overall portfolio metrics
+model Wallet {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Virtual cash balance
+  virtualCash      Decimal  @default(1000000.00) @db.Decimal(15, 2) // Starting ₹10,00,000
+  currency         Currency @default(INR)                            // Default currency
+  
+  // Portfolio metrics (calculated from holdings)
+  totalInvested    Decimal @default(0.00) @db.Decimal(15, 2)      // Total amount invested in stocks
+  currentValue     Decimal @default(0.00) @db.Decimal(15, 2)      // Current value of all holdings
+  totalPnL         Decimal @default(0.00) @db.Decimal(15, 2)      // Total profit/loss
+  totalPnLPercent  Float   @default(0.0)                          // Total P&L percentage
+  
+  // Portfolio performance tracking
+  dayPnL           Decimal @default(0.00) @db.Decimal(15, 2)      // Today's P&L
+  dayPnLPercent    Float   @default(0.0)                          // Today's P&L percentage
+  
+  // Metadata
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  lastUpdatedAt    DateTime @default(now())                       // Last portfolio value update
+
+  @@map("wallets")
+}
+
+// User's stock holdings/positions
+model Portfolio {
+  id                String  @id @default(cuid())
+  userId            String
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Stock identification
+  stockSymbol       String                                         // e.g., "RELIANCE", "TCS"
+  stockName         String                                         // Company name
+  exchange          String                                         // "NSE" or "BSE"
+  isin              String?                                        // ISIN code
+  
+  // Position details
+  quantity          Int                                            // Number of shares owned
+  averagePrice      Decimal  @db.Decimal(10, 2)                  // Average buying price per share
+  totalInvested     Decimal  @db.Decimal(15, 2)                  // Total amount invested (qty * avgPrice)
+  
+  // Current market values (updated from Groww API)
+  currentPrice      Decimal  @db.Decimal(10, 2)                  // Current market price per share
+  currentValue      Decimal  @db.Decimal(15, 2)                  // Current total value (qty * currentPrice)
+  
+  // P&L calculations
+  unrealizedPnL     Decimal  @db.Decimal(15, 2)                  // Unrealized profit/loss
+  unrealizedPnLPerc Float                                         // Unrealized P&L percentage
+  dayChange         Decimal  @default(0.00) @db.Decimal(10, 2)   // Today's price change
+  dayChangePercent  Float    @default(0.0)                       // Today's percentage change
+  
+  // Metadata
+  createdAt         DateTime @default(now())                      // First purchase date
+  updatedAt         DateTime @updatedAt                           // Last transaction update
+  lastPriceUpdate   DateTime @default(now())                     // Last price update from API
+
+  @@unique([userId, stockSymbol, exchange])
+  @@index([userId])
+  @@index([stockSymbol])
+  @@map("portfolios")
+}
+
+// All buy/sell transactions
+model Transaction {
+  id              String          @id @default(cuid())
+  userId          String
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Stock details
+  stockSymbol     String
+  stockName       String
+  exchange        String
+  isin            String?
+  
+  // Transaction details
+  type            TransactionType                                  // BUY or SELL
+  quantity        Int                                              // Number of shares
+  price           Decimal         @db.Decimal(10, 2)              // Price per share
+  totalAmount     Decimal         @db.Decimal(15, 2)              // Total transaction amount (qty * price)
+  
+  // Charges (can be added later for realism)
+  brokerage       Decimal         @default(0.00) @db.Decimal(8, 2)
+  taxes           Decimal         @default(0.00) @db.Decimal(8, 2)
+  totalCharges    Decimal         @default(0.00) @db.Decimal(8, 2)
+  netAmount       Decimal         @db.Decimal(15, 2)              // Amount after charges
+  
+  // Portfolio impact
+  balanceAfter    Decimal         @db.Decimal(15, 2)              // Virtual cash balance after transaction
+  
+  // Status and metadata
+  status          TransactionStatus @default(COMPLETED)
+  executedAt      DateTime        @default(now())                 // When transaction was executed
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  
+  // Optional: Link to trading order if created from order system
+  tradingOrderId  String?
+  tradingOrder    TradingOrder?   @relation(fields: [tradingOrderId], references: [id])
+
+  @@index([userId])
+  @@index([stockSymbol])
+  @@index([type])
+  @@index([executedAt])
+  @@map("transactions")
+}
+
+// User's watchlist - stocks they're tracking
+model Watchlist {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Stock details
+  stockSymbol String
+  stockName   String
+  exchange    String
+  isin        String?
+  
+  // Metadata
+  addedAt     DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, stockSymbol, exchange])
+  @@index([userId])
+  @@map("watchlists")
+}
+
+// Advanced: Trading orders (limit, market orders, etc.) - Can implement later
+model TradingOrder {
+  id              String          @id @default(cuid())
+  userId          String
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Stock details
+  stockSymbol     String
+  stockName       String
+  exchange        String
+  
+  // Order details
+  type            TransactionType                                  // BUY or SELL
+  orderType       OrderType       @default(MARKET)                // MARKET, LIMIT, STOP_LOSS
+  quantity        Int                                              // Number of shares
+  price           Decimal?        @db.Decimal(10, 2)              // Limit price (null for market orders)
+  triggerPrice    Decimal?        @db.Decimal(10, 2)              // Stop loss trigger price
+  
+  // Order status
+  status          OrderStatus     @default(PENDING)
+  filledQuantity  Int             @default(0)                     // Partially filled quantity
+  averageFillPrice Decimal?       @db.Decimal(10, 2)              // Average execution price
+  
+  // Metadata
+  validTill       DateTime?                                        // Order expiry (GTD orders)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  executedAt      DateTime?                                        // When order was executed
+  cancelledAt     DateTime?                                        // When order was cancelled
+  
+  // Relations
+  transactions    Transaction[]                                    // Executed transactions from this order
+
+  @@index([userId])
+  @@index([status])
+  @@index([stockSymbol])
+  @@map("trading_orders")
+}
+
+// #########################
+// Market Data Cache (Optional - for performance)
+// ##########################
+
+// Cache live stock prices to reduce API calls
+model StockPrice {
+  id              String   @id @default(cuid())
+  
+  // Stock identification
+  symbol          String
+  name            String
+  exchange        String
+  isin            String?
+  
+  // Price data from Groww API
+  ltp             Decimal  @db.Decimal(10, 2)                     // Last traded price
+  open            Decimal  @db.Decimal(10, 2)
+  high            Decimal  @db.Decimal(10, 2)
+  low             Decimal  @db.Decimal(10, 2)
+  previousClose   Decimal  @db.Decimal(10, 2)
+  
+  // Change metrics
+  change          Decimal  @db.Decimal(10, 2)
+  changePercent   Float
+  
+  // Volume and market data
+  volume          BigInt?
+  marketCap       BigInt?
+  
+  // Metadata
+  updatedAt       DateTime @updatedAt
+  createdAt       DateTime @default(now())
+  lastFetched     DateTime @default(now())                        // Last API fetch time
+
+  @@unique([symbol, exchange])
+  @@index([symbol])
+  @@index([lastFetched])
+  @@map("stock_prices")
+}
+
+// #########################
+// Enums
+// ##########################
+
+enum TransactionType {
+  BUY
+  SELL
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum OrderType {
+  MARKET
+  LIMIT
+  STOP_LOSS
+  STOP_LIMIT
+}
+
+enum OrderStatus {
+  PENDING
+  PARTIALLY_FILLED
+  FILLED
+  CANCELLED
+  REJECTED
+  EXPIRED
+}
+
+// #########################
+// Enhanced Trading Models
+// ##########################
+
+// User trading preferences and settings
+model UserPreferences {
+  id                String  @id @default(cuid())
+  userId            String  @unique
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Trading preferences
+  defaultExchange   String  @default("NSE")                        // Default exchange for trading
+  riskTolerance     RiskLevel @default(MEDIUM)                     // User's risk tolerance
+  tradingStyle      TradingStyle @default(SWING)                   // Trading style preference
+  
+  // Notification preferences
+  priceAlerts       Boolean @default(true)                         // Enable price alerts
+  orderAlerts       Boolean @default(true)                         // Enable order execution alerts
+  portfolioAlerts   Boolean @default(true)                         // Enable portfolio updates
+  emailNotifications Boolean @default(false)                       // Email notifications
+  
+  // Dashboard preferences
+  defaultView       String  @default("PORTFOLIO")                  // Default dashboard view
+  chartPreferences  Json    @default("{\"period\":\"1D\",\"type\":\"CANDLE\"}")
+  
+  // Metadata
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("user_preferences")
+}
+
+// Daily portfolio snapshots for performance tracking and charts
+model PortfolioSnapshot {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Snapshot date (one per day)
+  date            DateTime @db.Date
+  
+  // Portfolio values at end of day
+  totalValue      Decimal  @db.Decimal(15, 2)                     // Total portfolio value
+  totalInvested   Decimal  @db.Decimal(15, 2)                     // Total amount invested
+  totalPnL        Decimal  @db.Decimal(15, 2)                     // Total profit/loss
+  totalPnLPercent Float                                            // Total P&L percentage
+  cashBalance     Decimal  @db.Decimal(15, 2)                     // Available cash
+  
+  // Daily metrics
+  dayPnL          Decimal  @db.Decimal(15, 2)                     // Day's P&L
+  dayPnLPercent   Float                                            // Day's P&L percentage
+  
+  // Market benchmark (Nifty 50 for comparison)
+  benchmarkValue  Float?                                           // Nifty 50 value
+  benchmarkChange Float?                                           // Nifty 50 change %
+  
+  // Metadata
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([userId, date])
+  @@index([userId, date])
+  @@map("portfolio_snapshots")
+}
+
+// Market trading sessions and holidays (Groww API integration)
+model MarketSession {
+  id            String   @id @default(cuid())
+  exchange      String                                             // NSE, BSE
+  date          DateTime @db.Date
+  
+  // Market status
+  isOpen        Boolean  @default(true)                           // Is market open today?
+  isHoliday     Boolean  @default(false)                          // Is it a market holiday?
+  holidayReason String?                                           // Holiday description
+  
+  // Trading hours (IST)
+  preMarketStart  String? @default("09:00")                       // Pre-market start
+  preMarketEnd    String? @default("09:15")                       // Pre-market end
+  regularStart    String? @default("09:15")                       // Regular session start
+  regularEnd      String? @default("15:30")                       // Regular session end  
+  postMarketStart String? @default("15:40")                       // Post-market start
+  postMarketEnd   String? @default("16:00")                       // Post-market end
+  
+  // Metadata
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@unique([exchange, date])
+  @@index([date])
+  @@index([exchange, date])
+  @@map("market_sessions")
+}
+
+// Stock categories and metadata (enriched data)
+model StockMetadata {
+  id            String  @id @default(cuid())
+  
+  // Stock identification
+  symbol        String                                             // Stock symbol
+  exchange      String                                             // NSE or BSE
+  isin          String?                                            // ISIN code
+  
+  // Company information
+  companyName   String                                             // Full company name
+  sector        String?                                            // Business sector
+  industry      String?                                            // Industry classification
+  
+  // Market classification
+  marketCap     MarketCapSize?                                     // Large/Mid/Small cap
+  indexMembership Json  @default("[]")                            // Member of indices (Nifty50, etc.)
+  
+  // Trading information
+  isDerivativeAllowed Boolean @default(false)                     // F&O available?
+  lotSize       Int?                                               // Minimum trading lot
+  faceValue     Decimal? @db.Decimal(8, 2)                       // Share face value
+  
+  // Metadata
+  isActive      Boolean @default(true)                            // Is currently tradeable?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@unique([symbol, exchange])
+  @@index([symbol])
+  @@index([sector])
+  @@map("stock_metadata")
+}
+
+// API usage tracking for rate limiting (Groww API limits)
+model ApiUsageLog {
+  id            String   @id @default(cuid())
+  
+  // API call details
+  endpoint      String                                             // API endpoint called
+  method        String   @default("GET")                          // HTTP method
+  userId        String?                                            // User who triggered call (if applicable)
+  
+  // Rate limiting
+  requestCount  Int      @default(1)                              // Number of requests in window
+  windowStart   DateTime                                          // Rate limit window start
+  windowEnd     DateTime                                          // Rate limit window end
+  
+  // Response details
+  statusCode    Int?                                               // HTTP response code
+  responseTime  Int?                                               // Response time in milliseconds
+  errorMessage  String?                                            // Error if any
+  
+  // Metadata
+  createdAt     DateTime @default(now())
+  
+  @@unique([endpoint, windowStart])
+  @@index([endpoint])
+  @@index([windowStart])
+  @@map("api_usage_logs")
+}
+
+// #########################
+// Additional Enums
+// ##########################
+
+enum Currency {
+  INR
+  USD    // For future expansion
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM  
+  HIGH
+}
+
+enum TradingStyle {
+  INTRADAY   // Day trading
+  SWING      // Short-term (days to weeks)
+  POSITIONAL // Long-term (months to years)
+}
+
+enum MarketCapSize {
+  LARGE_CAP
+  MID_CAP
+  SMALL_CAP
+  MICRO_CAP
+}
