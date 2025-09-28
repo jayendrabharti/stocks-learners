@@ -17,8 +17,8 @@ export default function Logo() {
 
   const logoSrc =
     theme === "dark"
-      ? "/logos/stocks-learners-logo-with-title-no-padding-no-bg.jpg"
-      : "/logos/stocks-learners-logo-with-title-no-padding-no-bg.jpg";
+      ? "/logos/stocks-learners-logo-with-title-no-padding-no-bg.png"
+      : "/logos/stocks-learners-logo-with-title-no-padding-no-bg.png";
 
   useEffect(() => {
     setMounted(true);

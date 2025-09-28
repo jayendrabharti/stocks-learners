@@ -129,9 +129,9 @@ export default function Home() {
             <div className="relative flex items-center justify-center">
               <div className="relative">
                 <img
-                  src="/logos/stocks-learners-logo-with-title-original.jpg"
+                  src="/logos/stocks-learners-logo-with-title-original.png"
                   alt="StockLearners App Logo"
-                  className="h-80 w-80 rounded-2xl object-contain shadow-2xl"
+                  className="h-80 w-80 rounded-2xl object-contain"
                   style={{
                     filter: "drop-shadow(0 25px 25px rgb(0 0 0 / 0.15))",
                     background: "transparent",
