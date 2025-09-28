@@ -21,7 +21,7 @@ export default async function RootLayout({
       <body className={cn("flex h-full w-full flex-col overflow-hidden")}>
         <SessionProvider>
           <DataProvider>
-            <ThemeProvider>
+            <ThemeProvider defaultTheme="light">
               {children}
               <Toaster richColors />
             </ThemeProvider>
