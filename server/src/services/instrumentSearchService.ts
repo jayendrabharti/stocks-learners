@@ -1,9 +1,3 @@
-import {
-  Instrument,
-  InstrumentFilters,
-  InstrumentSearchParams,
-} from "../types/instruments.js";
-
 export class InstrumentSearchService {
   /**
    * Search and filter instruments based on criteria
