@@ -1,4 +1,4 @@
-export interface Instrument {
+interface Instrument {
   id?: number;
   exchange: string;
   exchange_token: string;
@@ -21,7 +21,7 @@ export interface Instrument {
   sell_allowed: boolean;
 }
 
-export interface InstrumentFilters {
+interface InstrumentFilters {
   exchange?: string[];
   instrument_type?: string[];
   segment?: string[];
@@ -38,7 +38,7 @@ export interface InstrumentFilters {
   expiry_date_to?: string;
 }
 
-export interface InstrumentSearchParams {
+interface InstrumentSearchParams {
   search?: string;
   filters?: InstrumentFilters;
   sort_by?: keyof Instrument;

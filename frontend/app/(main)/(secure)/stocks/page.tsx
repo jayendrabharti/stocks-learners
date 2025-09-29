@@ -1,0 +1,678 @@
+"use client";
+
+import React, { useState, useEffect } from "react";
+import { StockSearch } from "../../../../components/trading/StockSearch";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../../../../components/ui/card";
+import { Button } from "../../../../components/ui/button";
+import { Badge } from "../../../../components/ui/badge";
+import {
+  TrendingUp,
+  TrendingDown,
+  Search,
+  BarChart3,
+  Eye,
+  Clock,
+  Star,
+  Plus,
+  Activity,
+  Wallet,
+  PieChart,
+  HelpCircle,
+  Volume2,
+  Users,
+  ChevronRight,
+} from "lucide-react";
+import {
+  marketApi,
+  Stock,
+  MostBoughtStock,
+  formatCurrency,
+  formatNumber,
+  calculateChangePercent,
+  isMarketOpen,
+  MarketTimingResponse,
+} from "../../../../services/marketApi";
+import { SearchSkeleton } from "../../../../components/ui/SearchSkeleton";
+import Link from "next/link";
+import { cn } from "../../../../lib/utils";
+
+// StockCard component for consistent stock display
+interface StockCardProps {
+  stock: Stock | MostBoughtStock;
+  type?: "gainer" | "loser" | "volume" | "popular";
+  size?: "sm" | "md";
+}
+
+function StockCard({ stock, type = "gainer", size = "md" }: StockCardProps) {
+  let displayData;
+  let changePercent: number;
+  let change: number;
+  let price: number;
+  let symbol: string;
+  let companyName: string;
+  let logo: string;
+
+  // Handle different stock types
+  if ("company" in stock) {
+    // MostBoughtStock type
+    displayData = stock.stats;
+    changePercent = stock.stats.dayChangePerc;
+    change = stock.stats.dayChange;
+    price = stock.stats.ltp;
+    symbol = stock.company.companyShortName;
+    companyName = stock.company.companyName;
+    logo = stock.company.imageUrl;
+  } else {
+    // Stock type
+    changePercent = calculateChangePercent(stock.ltp, stock.close);
+    change = stock.ltp - stock.close;
+    price = stock.ltp;
+    symbol = stock.companyShortName || stock.nseScriptCode;
+    companyName = stock.companyName;
+    logo = stock.logoUrl;
+  }
+
+  const isPositive = change >= 0;
+  const isNeutral = change === 0;
+
+  // Use nseScriptCode for navigation instead of searchId
+  const stockId =
+    "company" in stock ? stock.company.nseScriptCode : stock.nseScriptCode;
+
+  return (
+    <Link href={`/stocks/${stockId}`}>
+      <Card
+        className={cn(
+          "group border-border/50 hover:border-border cursor-pointer transition-all duration-200 hover:shadow-lg",
+          size === "sm" ? "p-3" : "p-4",
+        )}
+      >
+        <CardContent className={size === "sm" ? "p-3" : "p-4"}>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 flex-1 items-center gap-3">
+              <div
+                className={cn(
+                  "bg-muted flex-shrink-0 overflow-hidden rounded-full",
+                  size === "sm" ? "h-8 w-8" : "h-10 w-10",
+                )}
+              >
+                <img
+                  src={logo}
+                  alt={symbol}
+                  className="h-full w-full object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = "none";
+                    const fallback = target.nextElementSibling as HTMLElement;
+                    if (fallback) fallback.classList.remove("hidden");
+                  }}
+                />
+                <div className="bg-muted text-muted-foreground hidden h-full w-full items-center justify-center text-xs font-medium">
+                  {symbol.slice(0, 2)}
+                </div>
+              </div>
+              <div className="min-w-0 flex-1">
+                <div
+                  className={cn(
+                    "text-foreground group-hover:text-primary truncate font-semibold transition-colors",
+                    size === "sm" ? "text-sm" : "text-base",
+                  )}
+                >
+                  {symbol}
+                </div>
+                <div
+                  className={cn(
+                    "text-muted-foreground truncate",
+                    size === "sm" ? "text-xs" : "text-sm",
+                  )}
+                >
+                  {companyName}
+                </div>
+                {type === "volume" && "volume" in stock && stock.volume && (
+                  <div className="mt-1 text-xs text-purple-600">
+                    Vol: {formatNumber(stock.volume)}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="flex-shrink-0 text-right">
+              <div
+                className={cn(
+                  "text-foreground font-semibold",
+                  size === "sm" ? "text-sm" : "text-base",
+                )}
+              >
+                ₹{price.toFixed(2)}
+              </div>
+              <div
+                className={cn(
+                  "flex items-center justify-end gap-1 font-medium",
+                  size === "sm" ? "text-xs" : "text-sm",
+                  isNeutral
+                    ? "text-muted-foreground"
+                    : isPositive
+                      ? "text-green-600"
+                      : "text-red-600",
+                )}
+              >
+                {!isNeutral &&
+                  (isPositive ? (
+                    <TrendingUp className="h-3 w-3" />
+                  ) : (
+                    <TrendingDown className="h-3 w-3" />
+                  ))}
+                <span>
+                  {isPositive ? "+" : ""}
+                  {change.toFixed(2)}
+                </span>
+                <span>
+                  ({isPositive ? "+" : ""}
+                  {changePercent.toFixed(2)}%)
+                </span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
+  );
+}
+
+export default function StocksPage() {
+  // Market data states
+  const [topGainers, setTopGainers] = useState<Stock[]>([]);
+  const [topLosers, setTopLosers] = useState<Stock[]>([]);
+  const [mostBought, setMostBought] = useState<MostBoughtStock[]>([]);
+  const [volumeShockers, setVolumeShockers] = useState<Stock[]>([]);
+  const [marketTiming, setMarketTiming] = useState<MarketTimingResponse | null>(
+    null,
+  );
+  const [loading, setLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+
+  // Fetch market data
+  useEffect(() => {
+    const fetchMarketData = async () => {
+      try {
+        setLoading(true);
+
+        // Use the efficient getAllMarketData method
+        const data = await marketApi.getAllMarketData({
+          gainersPageSize: 4,
+          losersPageSize: 4,
+          volumePageSize: 6,
+          mostBoughtSize: 4,
+        });
+
+        setTopGainers(data.topGainers);
+        setTopLosers(data.topLosers);
+        setMostBought(data.mostBought);
+        setVolumeShockers(data.volumeShockers);
+        setMarketTiming(data.marketTiming);
+        setLastUpdated(new Date());
+      } catch (error) {
+        console.error("Error fetching market data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMarketData();
+
+    // Refresh data every 30 seconds during market hours
+    const interval = setInterval(fetchMarketData, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Mock portfolio data - replace with real data from your backend
+  const portfolioStats = {
+    totalValue: 1000000,
+    investedValue: 0,
+    currentValue: 1000000,
+    totalPnL: 0,
+    totalPnLPercent: 0,
+    dayPnL: 0,
+    dayPnLPercent: 0,
+  };
+
+  // Check if market is open
+  const marketIsOpen = isMarketOpen(marketTiming);
+
+  // Sample indices data - you may want to fetch this from another API
+  const watchlistStocks = [
+    { symbol: "NIFTY 50", price: 19674.25, change: 156.8, changePercent: 0.8 },
+    { symbol: "SENSEX", price: 65953.48, change: 501.22, changePercent: 0.77 },
+    {
+      symbol: "BANKNIFTY",
+      price: 44267.85,
+      change: -89.15,
+      changePercent: -0.2,
+    },
+  ];
+
+  return (
+    <>
+      <div className="border-border bg-background sticky top-0 left-0 mb-2 flex w-full border-b p-2 shadow-md">
+        <StockSearch placeholder="Search for stocks, ETFs, indices... (e.g., RELIANCE, TCS, NIFTY)" />
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        {/* Left Column - Portfolio & Quick Stats */}
+        <div className="space-y-6 lg:col-span-2">
+          {/* Portfolio Overview */}
+          <Card className="border-border/50 shadow-lg">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-xl">Portfolio Overview</CardTitle>
+                <div className="text-muted-foreground flex items-center gap-2 text-sm">
+                  <Clock className="h-4 w-4" />
+                  <span>Updated {lastUpdated.toLocaleTimeString()}</span>
+                  <div
+                    className={`h-2 w-2 rounded-full ${marketIsOpen ? "bg-green-500" : "bg-red-500"}`}
+                  />
+                  <span>{marketIsOpen ? "Market Open" : "Market Closed"}</span>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                <div className="text-center md:text-left">
+                  <div className="mb-2 flex items-center justify-center md:justify-start">
+                    <div className="mr-2 rounded-lg bg-green-100 p-2">
+                      <Wallet className="h-5 w-5 text-green-600" />
+                    </div>
+                    <span className="text-muted-foreground text-sm font-medium">
+                      Total Value
+                    </span>
+                  </div>
+                  <p className="text-foreground text-3xl font-bold">
+                    ₹{portfolioStats.totalValue.toLocaleString()}
+                  </p>
+                  <Badge variant="secondary" className="mt-1">
+                    Virtual Money
+                  </Badge>
+                </div>
+
+                <div className="text-center md:text-left">
+                  <div className="mb-2 flex items-center justify-center md:justify-start">
+                    <div className="mr-2 rounded-lg bg-blue-100 p-2">
+                      <Activity className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <span className="text-muted-foreground text-sm font-medium">
+                      Invested
+                    </span>
+                  </div>
+                  <p className="text-foreground text-3xl font-bold">
+                    ₹{portfolioStats.investedValue.toLocaleString()}
+                  </p>
+                  <p className="text-muted-foreground mt-1 text-sm">
+                    Available: ₹{portfolioStats.currentValue.toLocaleString()}
+                  </p>
+                </div>
+
+                <div className="text-center md:text-left">
+                  <div className="mb-2 flex items-center justify-center md:justify-start">
+                    <div className="mr-2 rounded-lg bg-purple-100 p-2">
+                      <PieChart className="h-5 w-5 text-purple-600" />
+                    </div>
+                    <span className="text-muted-foreground text-sm font-medium">
+                      Total P&L
+                    </span>
+                  </div>
+                  <p className="text-muted-foreground text-3xl font-bold">
+                    ₹{portfolioStats.totalPnL.toLocaleString()}
+                  </p>
+                  <Badge
+                    variant={
+                      portfolioStats.totalPnLPercent >= 0
+                        ? "default"
+                        : "destructive"
+                    }
+                    className="mt-1"
+                  >
+                    {portfolioStats.totalPnLPercent >= 0 ? "+" : ""}
+                    {portfolioStats.totalPnLPercent}%
+                  </Badge>
+                </div>
+              </div>
+
+              <div className="border-border mt-6 border-t pt-6">
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                  <Button
+                    variant="outline"
+                    className="h-auto flex-col gap-2 p-4 hover:border-green-200 hover:bg-green-50"
+                  >
+                    <Plus className="h-5 w-5 text-green-600" />
+                    <span className="font-medium text-green-600">
+                      Buy Stocks
+                    </span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="h-auto flex-col gap-2 p-4 hover:border-blue-200 hover:bg-blue-50"
+                  >
+                    <BarChart3 className="h-5 w-5 text-blue-600" />
+                    <span className="font-medium text-blue-600">Portfolio</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="h-auto flex-col gap-2 p-4 hover:border-purple-200 hover:bg-purple-50"
+                  >
+                    <Eye className="h-5 w-5 text-purple-600" />
+                    <span className="font-medium text-purple-600">
+                      Watchlist
+                    </span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="h-auto flex-col gap-2 p-4 hover:border-orange-200 hover:bg-orange-50"
+                  >
+                    <Clock className="h-5 w-5 text-orange-600" />
+                    <span className="font-medium text-orange-600">History</span>
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Market Movers */}
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            {/* Top Gainers */}
+            <Card className="border-border/50 shadow-lg">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="rounded-lg bg-green-100 p-2">
+                      <TrendingUp className="h-5 w-5 text-green-600" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">Top Gainers</CardTitle>
+                      <div className="text-muted-foreground flex items-center gap-2 text-xs">
+                        <div
+                          className={`h-2 w-2 rounded-full ${marketIsOpen ? "bg-green-500" : "bg-red-500"}`}
+                        />
+                        {marketIsOpen ? "Live" : "Closed"}
+                      </div>
+                    </div>
+                  </div>
+                  <Link href="/stocks/top-gainers">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-green-600 hover:bg-green-50 hover:text-green-700"
+                    >
+                      View All
+                      <ChevronRight className="ml-1 h-4 w-4" />
+                    </Button>
+                  </Link>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {loading
+                  ? Array.from({ length: 4 }).map((_, index) => (
+                      <SearchSkeleton key={index} />
+                    ))
+                  : topGainers.map((stock, index) => (
+                      <StockCard
+                        key={stock.searchId || index}
+                        stock={stock}
+                        type="gainer"
+                        size="sm"
+                      />
+                    ))}
+              </CardContent>
+            </Card>
+
+            {/* Top Losers */}
+            <Card className="border-border/50 shadow-lg">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="rounded-lg bg-red-100 p-2">
+                      <TrendingDown className="h-5 w-5 text-red-600" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">Top Losers</CardTitle>
+                      <div className="text-muted-foreground flex items-center gap-2 text-xs">
+                        <div
+                          className={`h-2 w-2 rounded-full ${marketIsOpen ? "bg-green-500" : "bg-red-500"}`}
+                        />
+                        {marketIsOpen ? "Live" : "Closed"}
+                      </div>
+                    </div>
+                  </div>
+                  <Link href="/stocks/top-losers">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                    >
+                      View All
+                      <ChevronRight className="ml-1 h-4 w-4" />
+                    </Button>
+                  </Link>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {loading
+                  ? Array.from({ length: 4 }).map((_, index) => (
+                      <SearchSkeleton key={index} />
+                    ))
+                  : topLosers.map((stock, index) => (
+                      <StockCard
+                        key={stock.searchId || index}
+                        stock={stock}
+                        type="loser"
+                        size="sm"
+                      />
+                    ))}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Most Bought Stocks */}
+          <Card className="border-border/50 shadow-lg">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="rounded-lg bg-blue-100 p-2">
+                    <Users className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">
+                      Most Bought on Groww
+                    </CardTitle>
+                    <p className="text-muted-foreground text-sm">
+                      Popular among investors
+                    </p>
+                  </div>
+                </div>
+                <Link href="/stocks/most-bought">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+                  >
+                    View All
+                    <ChevronRight className="ml-1 h-4 w-4" />
+                  </Button>
+                </Link>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                {loading
+                  ? Array.from({ length: 4 }).map((_, index) => (
+                      <SearchSkeleton key={index} />
+                    ))
+                  : mostBought.map((stock, index) => (
+                      <StockCard
+                        key={stock.company.searchId || index}
+                        stock={stock}
+                        type="popular"
+                        size="sm"
+                      />
+                    ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Volume Shockers */}
+          <Card className="border-border/50 shadow-lg">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="rounded-lg bg-purple-100 p-2">
+                    <Volume2 className="h-5 w-5 text-purple-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">Volume Shockers</CardTitle>
+                    <p className="text-muted-foreground text-sm">
+                      Unusual trading activity
+                    </p>
+                  </div>
+                </div>
+                <Link href="/stocks/volume-shockers">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-purple-600 hover:bg-purple-50 hover:text-purple-700"
+                  >
+                    View All
+                    <ChevronRight className="ml-1 h-4 w-4" />
+                  </Button>
+                </Link>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+                {loading
+                  ? Array.from({ length: 6 }).map((_, index) => (
+                      <SearchSkeleton key={index} />
+                    ))
+                  : volumeShockers.map((stock, index) => (
+                      <StockCard
+                        key={stock.searchId || index}
+                        stock={stock}
+                        type="volume"
+                        size="sm"
+                      />
+                    ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right Column - Watchlist & Features */}
+        <div className="space-y-6">
+          {/* Watchlist */}
+          <div className="rounded-2xl border border-gray-200 bg-white shadow-lg">
+            <div className="border-b border-gray-200 p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <Star className="mr-2 h-5 w-5 text-yellow-500" />
+                  <h3 className="text-lg font-bold text-gray-900">
+                    Market Indices
+                  </h3>
+                </div>
+                <button className="text-sm font-medium text-blue-600 hover:text-blue-700">
+                  View All
+                </button>
+              </div>
+            </div>
+            <div className="space-y-4 p-6">
+              {watchlistStocks.map((stock, index) => (
+                <div
+                  key={index}
+                  className="flex cursor-pointer items-center justify-between rounded-lg bg-gray-50 p-3 transition-colors hover:bg-gray-100"
+                >
+                  <div>
+                    <p className="font-semibold text-gray-900">
+                      {stock.symbol}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      ₹{stock.price.toFixed(2)}
+                    </p>
+                  </div>
+                  <div
+                    className={`text-right ${stock.change >= 0 ? "text-green-600" : "text-red-600"}`}
+                  >
+                    <p className="font-semibold">
+                      {stock.change >= 0 ? "+" : ""}
+                      {stock.change.toFixed(2)}
+                    </p>
+                    <p className="text-sm">
+                      {stock.changePercent >= 0 ? "+" : ""}
+                      {stock.changePercent.toFixed(2)}%
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Coming Soon Features */}
+          <div className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 to-purple-50 shadow-lg">
+            <div className="p-6">
+              <div className="mb-4 flex items-center">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600">
+                  <Star className="h-4 w-4 text-white" />
+                </div>
+                <h3 className="ml-3 text-lg font-bold text-gray-900">
+                  Coming Soon
+                </h3>
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center rounded-lg bg-white/70 p-3">
+                  <div className="mr-3 h-2 w-2 rounded-full bg-blue-500"></div>
+                  <span className="text-sm font-medium text-gray-700">
+                    Options Trading
+                  </span>
+                </div>
+                <div className="flex items-center rounded-lg bg-white/70 p-3">
+                  <div className="mr-3 h-2 w-2 rounded-full bg-purple-500"></div>
+                  <span className="text-sm font-medium text-gray-700">
+                    Futures Trading
+                  </span>
+                </div>
+                <div className="flex items-center rounded-lg bg-white/70 p-3">
+                  <div className="mr-3 h-2 w-2 rounded-full bg-green-500"></div>
+                  <span className="text-sm font-medium text-gray-700">
+                    SIP Investment
+                  </span>
+                </div>
+                <div className="flex items-center rounded-lg bg-white/70 p-3">
+                  <div className="mr-3 h-2 w-2 rounded-full bg-orange-500"></div>
+                  <span className="text-sm font-medium text-gray-700">
+                    Mutual Funds
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Help & Support */}
+          <div className="rounded-2xl border border-gray-200 bg-white shadow-lg">
+            <div className="p-6">
+              <div className="mb-4 flex items-center">
+                <HelpCircle className="mr-2 h-5 w-5 text-blue-600" />
+                <h3 className="text-lg font-bold text-gray-900">Need Help?</h3>
+              </div>
+              <p className="mb-4 text-sm text-gray-600">
+                New to trading? Check out our learning resources to get started.
+              </p>
+              <button className="w-full rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-700">
+                Learning Center
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}

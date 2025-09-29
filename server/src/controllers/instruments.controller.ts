@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { InstrumentsService } from "../services/instrumentsService.js";
 import { InstrumentSearchService } from "../services/instrumentSearchService.js";
-import { InstrumentSearchParams } from "../types/instruments.js";
+import getGrowwAccessToken from "../groww/getGrowwAccessToken.js";
 
 // Helper functions for responses
 const successResponse = (res: Response, data: any, statusCode = 200) => {
@@ -152,9 +152,6 @@ export const searchInstruments = async (
   }
 };
 
-/**
- * Get instrument by symbol
- */
 export const getInstrumentBySymbol = async (
   req: Request,
   res: Response
@@ -192,5 +189,138 @@ export const getInstrumentBySymbol = async (
   } catch (error) {
     console.error("Error getting instrument by symbol:", error);
     errorResponse(res, "Failed to get instrument");
+  }
+};
+
+export const getInstrumentLiveData = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  try {
+    const { exchange = "NSE", trading_symbol } = req.query;
+
+    if (
+      !trading_symbol ||
+      !exchange ||
+      typeof trading_symbol !== "string" ||
+      typeof exchange !== "string" ||
+      (exchange !== "NSE" && exchange !== "BSE")
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid query parameters",
+      });
+    }
+
+    const access_token = await getGrowwAccessToken();
+
+    // Fetch quote data
+    const quoteUrl = `https://api.groww.in/v1/live-data/quote?exchange=${encodeURIComponent(
+      exchange
+    )}&segment=CASH&trading_symbol=${encodeURIComponent(trading_symbol)}`;
+    const quoteResponse = await fetch(quoteUrl, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${access_token}`,
+        "X-API-VERSION": "1.0",
+      },
+    });
+
+    if (!quoteResponse.ok) {
+      return res.status(quoteResponse.status).json({
+        success: false,
+        message: `Failed to fetch live data: ${quoteResponse.statusText}`,
+      });
+    }
+
+    const quoteData = await quoteResponse.json();
+
+    return res.status(200).json({
+      success: true,
+      quoteData,
+    });
+  } catch (error) {
+    console.error("Error getting instrument live data:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to get instrument live data",
+    });
+  }
+};
+
+export const getInstrumentHistoricalData = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  try {
+    const {
+      exchange = "NSE",
+      trading_symbol,
+      start_time,
+      end_time,
+      interval_in_minutes = 1440, // Default to daily data
+    } = req.query;
+
+    // Validation
+    if (
+      !trading_symbol ||
+      !exchange ||
+      !start_time ||
+      !end_time ||
+      typeof trading_symbol !== "string" ||
+      typeof exchange !== "string" ||
+      typeof start_time !== "string" ||
+      typeof end_time !== "string" ||
+      (exchange !== "NSE" && exchange !== "BSE")
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Invalid query parameters. Required: exchange, trading_symbol, start_time, end_time",
+      });
+    }
+
+    const access_token = await getGrowwAccessToken();
+
+    // Fetch historical data
+    const historicalUrl = `https://api.groww.in/v1/historical/candle/range?exchange=${encodeURIComponent(
+      exchange
+    )}&segment=CASH&trading_symbol=${encodeURIComponent(
+      trading_symbol
+    )}&start_time=${encodeURIComponent(
+      start_time
+    )}&end_time=${encodeURIComponent(
+      end_time
+    )}&interval_in_minutes=${interval_in_minutes}`;
+
+    const historicalResponse = await fetch(historicalUrl, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${access_token}`,
+        "X-API-VERSION": "1.0",
+      },
+    });
+
+    if (!historicalResponse.ok) {
+      return res.status(historicalResponse.status).json({
+        success: false,
+        message: `Failed to fetch historical data: ${historicalResponse.statusText}`,
+      });
+    }
+
+    const historicalData = await historicalResponse.json();
+
+    return res.status(200).json({
+      success: true,
+      historicalData,
+    });
+  } catch (error) {
+    console.error("Error getting instrument historical data:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to get instrument historical data",
+    });
   }
 };

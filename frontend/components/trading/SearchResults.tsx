@@ -5,6 +5,8 @@ import { Loader2, AlertCircle, TrendingUp } from "lucide-react";
 import { InstrumentSearch, SearchResponse } from "../../types/trading";
 import { StockCard } from "./StockCard";
 import { SearchSkeleton } from "../ui/SearchSkeleton";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 interface SearchResultsProps {
   results: InstrumentSearch[];
@@ -27,6 +29,13 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
   onLoadMore,
   onStockSelect,
 }) => {
+  const router = useRouter();
+
+  const handleStockClick = (stock: InstrumentSearch) => {
+    // Navigate directly to stock page using nseScriptCode
+    const stockId = stock.symbol; // Using symbol as it contains the nseScriptCode
+    router.push(`/stocks/${stockId}`);
+  };
   if (loading && results.length === 0) {
     return (
       <div className="p-4">
@@ -74,7 +83,7 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
           <div
             key={`${stock.symbol}-${stock.exchange}-${index}`}
             className="cursor-pointer transition-colors hover:bg-gray-50"
-            onClick={() => onStockSelect?.(stock)}
+            onClick={() => handleStockClick(stock)}
           >
             <StockCard stock={stock} showDetails={false} />
           </div>
