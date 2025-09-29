@@ -10,7 +10,7 @@ dotenv.config();
 
 const app = express();
 
-const PORT = process.env.PORT || 6900;
+const PORT = Number(process.env.PORT) || 8080;
 
 app.use(
   cors({
@@ -40,6 +40,6 @@ app.use("/auth", authRouter);
 app.use("/instruments", instrumentsRouter);
 app.use("/market", marketRouter);
 
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Trading Server is running on port ${PORT}`);
 });
