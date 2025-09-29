@@ -1,5 +1,5 @@
-import prisma from "../prisma/client";
-import { getNewGrowwAccessToken } from "./getNewGrowwAccessToken";
+import prisma from "../prisma/client.js";
+import { getNewGrowwAccessToken } from "./getNewGrowwAccessToken.js";
 
 /**
  * Calculate the next 6 AM expiration time
