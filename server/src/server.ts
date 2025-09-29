@@ -30,6 +30,12 @@ app.get("/", (_req, res) => {
   res.send(`This is your Trading API`);
 });
 
+app.get("/health", (_req, res) => {
+  res
+    .status(200)
+    .json({ status: "healthy", timestamp: new Date().toISOString() });
+});
+
 app.use("/auth", authRouter);
 app.use("/instruments", instrumentsRouter);
 app.use("/market", marketRouter);
