@@ -35,10 +35,9 @@ coverage/
 
 # Misc
 *.local
+
+# Generated files
 /src/generated/prisma
 
-/src/generated/prisma
-
-/src/generated/prisma
-
+# Cache directory
 /src/cache
