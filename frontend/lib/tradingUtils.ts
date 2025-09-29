@@ -55,13 +55,13 @@ export function formatPercentage(value: number): string {
 }
 
 export function getChangeColor(value: number): string {
-  if (value > 0) return "text-green-600";
-  if (value < 0) return "text-red-600";
-  return "text-gray-600";
+  if (value > 0) return "text-chart-1";
+  if (value < 0) return "text-destructive";
+  return "text-muted-foreground";
 }
 
 export function getChangeBgColor(value: number): string {
-  if (value > 0) return "bg-green-50";
-  if (value < 0) return "bg-red-50";
-  return "bg-gray-50";
+  if (value > 0) return "bg-chart-1/10";
+  if (value < 0) return "bg-destructive/10";
+  return "bg-muted/30";
 }

@@ -95,7 +95,7 @@ function StockCard({ stock, rank }: StockCardProps) {
                   maximumFractionDigits: 2,
                 })}
               </div>
-              <div className="flex items-center justify-end gap-1 text-sm font-medium text-green-600">
+              <div className="flex items-center justify-end gap-1 text-sm font-medium text-chart-1">
                 <TrendingUp className="h-4 w-4" />
                 <span>+₹{change.toFixed(2)}</span>
                 <span>(+{changePercent.toFixed(2)}%)</span>
@@ -163,8 +163,8 @@ export default function TopGainersPage() {
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-green-100 p-3">
-              <TrendingUp className="h-6 w-6 text-green-600" />
+            <div className="rounded-xl bg-chart-1/10 p-3">
+              <TrendingUp className="h-6 w-6 text-chart-1" />
             </div>
             <div>
               <h1 className="text-foreground text-2xl font-bold">
@@ -174,7 +174,7 @@ export default function TopGainersPage() {
                 <Clock className="h-4 w-4" />
                 <span>Updated {lastUpdated.toLocaleTimeString()}</span>
                 <div
-                  className={`h-2 w-2 rounded-full ${marketIsOpen ? "bg-green-500" : "bg-red-500"}`}
+                  className={`h-2 w-2 rounded-full ${marketIsOpen ? "bg-chart-1" : "bg-destructive"}`}
                 />
                 <span>{marketIsOpen ? "Market Open" : "Market Closed"}</span>
               </div>
@@ -213,15 +213,15 @@ export default function TopGainersPage() {
         className={cn(
           "mb-6 border-l-4",
           marketIsOpen
-            ? "border-l-green-500 bg-green-50"
-            : "border-l-red-500 bg-red-50",
+            ? "border-l-chart-1 bg-chart-1/5"
+            : "border-l-destructive bg-destructive/5",
         )}
       >
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div
-                className={`h-3 w-3 rounded-full ${marketIsOpen ? "bg-green-500" : "bg-red-500"}`}
+                className={`h-3 w-3 rounded-full ${marketIsOpen ? "bg-chart-1" : "bg-destructive"}`}
               />
               <span className="font-medium">
                 {marketIsOpen ? "Market is Open" : "Market is Closed"}
@@ -241,7 +241,7 @@ export default function TopGainersPage() {
       <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-2xl font-bold text-chart-1">
               {loading ? "..." : stocks.length}
             </div>
             <div className="text-muted-foreground text-sm">Total Gainers</div>
@@ -249,7 +249,7 @@ export default function TopGainersPage() {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-2xl font-bold text-chart-1">
               {loading
                 ? "..."
                 : stocks.length > 0
@@ -261,7 +261,7 @@ export default function TopGainersPage() {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-2xl font-bold text-chart-1">
               {loading
                 ? "..."
                 : stocks.length > 0

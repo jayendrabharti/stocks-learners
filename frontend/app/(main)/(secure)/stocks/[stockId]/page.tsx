@@ -412,13 +412,13 @@ export default function StockPage() {
             </div>
             <div className="flex justify-between gap-4">
               <span className="text-muted-foreground">High:</span>
-              <span className="font-medium text-green-600">
+              <span className="font-medium text-chart-1">
                 ₹{data.high.toFixed(2)}
               </span>
             </div>
             <div className="flex justify-between gap-4">
               <span className="text-muted-foreground">Low:</span>
-              <span className="font-medium text-red-600">
+              <span className="font-medium text-destructive">
                 ₹{data.low.toFixed(2)}
               </span>
             </div>
@@ -670,8 +670,8 @@ export default function StockPage() {
                         <div
                           className={`flex items-center justify-center gap-1 ${
                             liveData.day_change >= 0
-                              ? "text-green-600"
-                              : "text-red-600"
+                              ? "text-chart-1"
+                              : "text-destructive"
                           }`}
                         >
                           {liveData.day_change >= 0 ? (
@@ -960,7 +960,7 @@ export default function StockPage() {
                           <span className="text-muted-foreground text-sm">
                             High
                           </span>
-                          <span className="font-semibold text-green-600">
+                          <span className="font-semibold text-chart-1">
                             ₹
                             {Math.max(...chartData.map((d) => d.high)).toFixed(
                               2,
@@ -971,7 +971,7 @@ export default function StockPage() {
                           <span className="text-muted-foreground text-sm">
                             Low
                           </span>
-                          <span className="font-semibold text-red-600">
+                          <span className="font-semibold text-destructive">
                             ₹
                             {Math.min(...chartData.map((d) => d.low)).toFixed(
                               2,
@@ -1054,8 +1054,8 @@ export default function StockPage() {
                                 className={`font-semibold ${
                                   chartData[chartData.length - 1].close >=
                                   chartData[0].open
-                                    ? "text-green-600"
-                                    : "text-red-600"
+                                    ? "text-chart-1"
+                                    : "text-destructive"
                                 }`}
                               >
                                 {(
@@ -1108,7 +1108,7 @@ export default function StockPage() {
                             <span className="text-muted-foreground text-sm">
                               High
                             </span>
-                            <span className="font-semibold text-green-600">
+                            <span className="font-semibold text-chart-1">
                               {formatCurrency(ohlcData.high)}
                             </span>
                           </div>
@@ -1116,7 +1116,7 @@ export default function StockPage() {
                             <span className="text-muted-foreground text-sm">
                               Low
                             </span>
-                            <span className="font-semibold text-red-600">
+                            <span className="font-semibold text-destructive">
                               {formatCurrency(ohlcData.low)}
                             </span>
                           </div>
@@ -1144,7 +1144,7 @@ export default function StockPage() {
                       <span className="text-muted-foreground text-sm">
                         Upper Circuit
                       </span>
-                      <span className="font-semibold text-green-600">
+                      <span className="font-semibold text-chart-1">
                         {formatCurrency(liveData.upper_circuit_limit)}
                       </span>
                     </div>
@@ -1152,7 +1152,7 @@ export default function StockPage() {
                       <span className="text-muted-foreground text-sm">
                         Lower Circuit
                       </span>
-                      <span className="font-semibold text-red-600">
+                      <span className="font-semibold text-destructive">
                         {formatCurrency(liveData.lower_circuit_limit)}
                       </span>
                     </div>
@@ -1185,7 +1185,7 @@ export default function StockPage() {
                       <span className="text-muted-foreground text-sm">
                         Bid Price
                       </span>
-                      <span className="font-semibold text-green-600">
+                      <span className="font-semibold text-chart-1">
                         {formatCurrency(liveData.bid_price)}
                       </span>
                     </div>
@@ -1193,7 +1193,7 @@ export default function StockPage() {
                       <span className="text-muted-foreground text-sm">
                         Ask Price
                       </span>
-                      <span className="font-semibold text-red-600">
+                      <span className="font-semibold text-destructive">
                         {formatCurrency(liveData.offer_price)}
                       </span>
                     </div>
@@ -1270,7 +1270,7 @@ export default function StockPage() {
                 <CardContent>
                   <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div>
-                      <h4 className="mb-3 text-sm font-semibold tracking-wide text-green-600 uppercase">
+                      <h4 className="mb-3 text-sm font-semibold tracking-wide text-chart-1 uppercase">
                         Buy Orders
                       </h4>
                       <div className="space-y-2">
@@ -1284,7 +1284,7 @@ export default function StockPage() {
                             key={index}
                             className="grid grid-cols-3 gap-2 text-sm"
                           >
-                            <span className="font-medium text-green-600">
+                            <span className="font-medium text-chart-1">
                               {formatCurrency(order.price)}
                             </span>
                             <span className="text-center">
@@ -1302,7 +1302,7 @@ export default function StockPage() {
                       </div>
                     </div>
                     <div>
-                      <h4 className="mb-3 text-sm font-semibold tracking-wide text-red-600 uppercase">
+                      <h4 className="mb-3 text-sm font-semibold tracking-wide text-destructive uppercase">
                         Sell Orders
                       </h4>
                       <div className="space-y-2">
@@ -1318,7 +1318,7 @@ export default function StockPage() {
                               key={index}
                               className="grid grid-cols-3 gap-2 text-sm"
                             >
-                              <span className="font-medium text-red-600">
+                              <span className="font-medium text-destructive">
                                 {formatCurrency(order.price)}
                               </span>
                               <span className="text-center">
@@ -1383,8 +1383,8 @@ export default function StockPage() {
                     <div
                       className={`text-xs ${
                         (liveData?.day_change || 0) >= 0
-                          ? "text-green-600"
-                          : "text-red-600"
+                          ? "text-chart-1"
+                          : "text-destructive"
                       }`}
                     >
                       {liveData?.day_change_perc?.toFixed(2)}%

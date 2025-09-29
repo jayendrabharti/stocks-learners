@@ -6,6 +6,7 @@ import { useStockSearch } from "../../hooks/useStockSearch";
 import { SearchResults } from "./SearchResults";
 import { SearchFilters } from "./SearchFilters";
 import { RecentSearches } from "./RecentSearches";
+import { Input } from "../ui/input";
 
 interface StockSearchProps {
   onStockSelect?: (stock: any) => void;
@@ -57,11 +58,7 @@ export const StockSearch: React.FC<StockSearchProps> = ({
     <div className={`relative mx-auto w-full max-w-2xl ${className}`}>
       {/* Search Input */}
       <div className="relative">
-        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-          <Search className="h-5 w-5 text-gray-400" />
-        </div>
-
-        <input
+        <Input
           type="text"
           value={query}
           onChange={handleInputChange}
@@ -71,7 +68,6 @@ export const StockSearch: React.FC<StockSearchProps> = ({
             setTimeout(() => setIsFocused(false), 200);
           }}
           placeholder={placeholder}
-          className="block w-full rounded-lg border border-gray-300 bg-white py-3 pr-20 pl-10 text-sm leading-5 placeholder-gray-500 focus:border-blue-500 focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:outline-none"
         />
 
         <div className="absolute inset-y-0 right-0 flex items-center space-x-2 pr-3">

@@ -86,9 +86,9 @@ export default function NavBar() {
           })}
         </div>
 
-        {/* <ThemeSwitch className="ml-auto md:ml-0" /> */}
+        <ThemeSwitch className="ml-auto md:ml-0" />
 
-        <UserButton className="ml-auto md:ml-0" />
+        <UserButton />
 
         <Button
           variant={"ghost"}

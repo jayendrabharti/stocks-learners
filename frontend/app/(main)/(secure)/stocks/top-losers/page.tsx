@@ -87,7 +87,7 @@ function StockCard({ stock, rank }: StockCardProps) {
                   maximumFractionDigits: 2,
                 })}
               </div>
-              <div className="flex items-center justify-end gap-1 text-sm font-medium text-red-600">
+              <div className="flex items-center justify-end gap-1 text-sm font-medium text-destructive">
                 <TrendingDown className="h-4 w-4" />
                 <span>₹{change.toFixed(2)}</span>
                 <span>({changePercent.toFixed(2)}%)</span>
@@ -155,8 +155,8 @@ export default function TopLosersPage() {
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-red-100 p-3">
-              <TrendingDown className="h-6 w-6 text-red-600" />
+            <div className="rounded-xl bg-destructive/10 p-3">
+              <TrendingDown className="h-6 w-6 text-destructive" />
             </div>
             <div>
               <h1 className="text-foreground text-2xl font-bold">Top Losers</h1>
@@ -164,7 +164,7 @@ export default function TopLosersPage() {
                 <Clock className="h-4 w-4" />
                 <span>Updated {lastUpdated.toLocaleTimeString()}</span>
                 <div
-                  className={`h-2 w-2 rounded-full ${marketIsOpen ? "bg-green-500" : "bg-red-500"}`}
+                  className={`h-2 w-2 rounded-full ${marketIsOpen ? "bg-chart-1/50" : "bg-destructive/50"}`}
                 />
                 <span>{marketIsOpen ? "Market Open" : "Market Closed"}</span>
               </div>
@@ -203,15 +203,15 @@ export default function TopLosersPage() {
         className={cn(
           "mb-6 border-l-4",
           marketIsOpen
-            ? "border-l-green-500 bg-green-50"
-            : "border-l-red-500 bg-red-50",
+            ? "border-l-chart-1 bg-chart-1/5"
+            : "border-l-destructive bg-destructive/5",
         )}
       >
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div
-                className={`h-3 w-3 rounded-full ${marketIsOpen ? "bg-green-500" : "bg-red-500"}`}
+                className={`h-3 w-3 rounded-full ${marketIsOpen ? "bg-chart-1/50" : "bg-destructive/50"}`}
               />
               <span className="font-medium">
                 {marketIsOpen ? "Market is Open" : "Market is Closed"}
@@ -231,7 +231,7 @@ export default function TopLosersPage() {
       <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-red-600">
+            <div className="text-2xl font-bold text-destructive">
               {loading ? "..." : stocks.length}
             </div>
             <div className="text-muted-foreground text-sm">Total Losers</div>
@@ -239,7 +239,7 @@ export default function TopLosersPage() {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-red-600">
+            <div className="text-2xl font-bold text-destructive">
               {loading
                 ? "..."
                 : stocks.length > 0
@@ -251,7 +251,7 @@ export default function TopLosersPage() {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-red-600">
+            <div className="text-2xl font-bold text-destructive">
               {loading
                 ? "..."
                 : stocks.length > 0

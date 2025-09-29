@@ -96,8 +96,8 @@ function StockCard({ stock, rank }: StockCardProps) {
                   isNeutral
                     ? "text-muted-foreground"
                     : isPositive
-                      ? "text-green-600"
-                      : "text-red-600",
+                      ? "text-chart-1"
+                      : "text-destructive",
                 )}
               >
                 {!isNeutral &&
@@ -195,7 +195,7 @@ export default function MostBoughtPage() {
                 <Clock className="h-4 w-4" />
                 <span>Updated {lastUpdated.toLocaleTimeString()}</span>
                 <div
-                  className={`h-2 w-2 rounded-full ${marketIsOpen ? "bg-green-500" : "bg-red-500"}`}
+                  className={`h-2 w-2 rounded-full ${marketIsOpen ? "bg-chart-1/50" : "bg-destructive/50"}`}
                 />
                 <span>{marketIsOpen ? "Market Open" : "Market Closed"}</span>
               </div>
@@ -234,15 +234,15 @@ export default function MostBoughtPage() {
         className={cn(
           "mb-6 border-l-4",
           marketIsOpen
-            ? "border-l-green-500 bg-green-50"
-            : "border-l-red-500 bg-red-50",
+            ? "border-l-chart-1 bg-chart-1/5"
+            : "border-l-destructive bg-destructive/5",
         )}
       >
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div
-                className={`h-3 w-3 rounded-full ${marketIsOpen ? "bg-green-500" : "bg-red-500"}`}
+                className={`h-3 w-3 rounded-full ${marketIsOpen ? "bg-chart-1/50" : "bg-destructive/50"}`}
               />
               <span className="font-medium">
                 {marketIsOpen ? "Market is Open" : "Market is Closed"}
@@ -270,7 +270,7 @@ export default function MostBoughtPage() {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-2xl font-bold text-chart-1">
               {loading ? "..." : gainers.length}
             </div>
             <div className="text-muted-foreground text-sm">Gainers</div>
@@ -278,7 +278,7 @@ export default function MostBoughtPage() {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-red-600">
+            <div className="text-2xl font-bold text-destructive">
               {loading ? "..." : losers.length}
             </div>
             <div className="text-muted-foreground text-sm">Losers</div>

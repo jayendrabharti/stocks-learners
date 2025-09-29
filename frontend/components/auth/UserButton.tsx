@@ -61,18 +61,18 @@ export default function UserButton({
             <DropdownMenuContent align="end">
               <div className="space-y-2 px-3 py-2 text-center">
                 {user?.name && (
-                  <span className="block font-medium text-gray-900 dark:text-gray-100">
+                  <span className="text-foreground block font-medium">
                     {user.name}
                   </span>
                 )}
                 <Separator />
                 {user?.email && (
-                  <span className="block text-xs text-gray-500 dark:text-gray-400">
+                  <span className="text-muted-foreground block text-xs">
                     {user.email}
                   </span>
                 )}
                 {user?.phone && (
-                  <span className="block text-xs text-gray-500 dark:text-gray-400">
+                  <span className="text-muted-foreground block text-xs">
                     {user.phone}
                   </span>
                 )}
@@ -115,12 +115,12 @@ export default function UserButton({
           <DropdownMenuTrigger asChild>
             <div
               className={cn(
-                "flex flex-row items-center border rounded-2xl gap-2",
-                "transition-all duration-300 mx-auto",
+                "flex flex-row items-center gap-2 rounded-2xl border",
+                "mx-auto transition-all duration-300",
                 expanded
-                  ? "border-border shadow-md bg-secondary py-2 px-4"
-                  : "bg-transparent border-transparent mx-auto",
-                className
+                  ? "border-border bg-secondary px-4 py-2 shadow-md"
+                  : "mx-auto border-transparent bg-transparent",
+                className,
               )}
             >
               <Avatar className="cursor-pointer">

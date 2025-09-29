@@ -15,23 +15,23 @@ export const SearchSkeleton: React.FC<SearchSkeletonProps> = ({
         <div key={index} className="flex animate-pulse items-center space-x-3">
           {/* Logo Skeleton */}
           <div className="flex-shrink-0">
-            <div className="h-10 w-10 rounded-full bg-gray-200"></div>
+            <div className="bg-muted h-10 w-10 rounded-full"></div>
           </div>
 
           {/* Content Skeleton */}
           <div className="min-w-0 flex-1">
             <div className="mb-1 flex items-center space-x-2">
-              <div className="h-4 w-20 rounded bg-gray-200"></div>
-              <div className="h-4 w-12 rounded bg-gray-200"></div>
+              <div className="bg-muted h-4 w-20 rounded"></div>
+              <div className="bg-muted h-4 w-12 rounded"></div>
             </div>
-            <div className="mb-1 h-3 w-32 rounded bg-gray-200"></div>
-            <div className="h-3 w-24 rounded bg-gray-200"></div>
+            <div className="bg-muted mb-1 h-3 w-32 rounded"></div>
+            <div className="bg-muted h-3 w-24 rounded"></div>
           </div>
 
           {/* Price Skeleton */}
           <div className="flex-shrink-0 text-right">
-            <div className="mb-1 h-4 w-16 rounded bg-gray-200"></div>
-            <div className="h-3 w-12 rounded bg-gray-200"></div>
+            <div className="bg-muted mb-1 h-4 w-16 rounded"></div>
+            <div className="bg-muted h-3 w-12 rounded"></div>
           </div>
         </div>
       ))}
@@ -45,31 +45,31 @@ export const StockCardSkeleton: React.FC = () => {
       <div className="flex items-center space-x-3">
         {/* Logo Skeleton */}
         <div className="flex-shrink-0">
-          <div className="h-10 w-10 rounded-full bg-gray-200"></div>
+          <div className="bg-muted h-10 w-10 rounded-full"></div>
         </div>
 
         {/* Content Skeleton */}
         <div className="min-w-0 flex-1">
           <div className="mb-1 flex items-center space-x-2">
-            <div className="h-4 w-20 rounded bg-gray-200"></div>
-            <div className="h-4 w-12 rounded bg-gray-200"></div>
+            <div className="bg-muted h-4 w-20 rounded"></div>
+            <div className="bg-muted h-4 w-12 rounded"></div>
           </div>
-          <div className="mb-1 h-3 w-32 rounded bg-gray-200"></div>
-          <div className="h-3 w-24 rounded bg-gray-200"></div>
+          <div className="bg-muted mb-1 h-3 w-32 rounded"></div>
+          <div className="bg-muted h-3 w-24 rounded"></div>
         </div>
 
         {/* Price Skeleton */}
         <div className="flex-shrink-0 text-right">
-          <div className="mb-1 h-4 w-16 rounded bg-gray-200"></div>
-          <div className="h-3 w-12 rounded bg-gray-200"></div>
+          <div className="bg-muted mb-1 h-4 w-16 rounded"></div>
+          <div className="bg-muted h-3 w-12 rounded"></div>
         </div>
       </div>
 
       {/* Action Buttons Skeleton */}
       <div className="mt-3 flex space-x-2">
-        <div className="h-7 flex-1 rounded-md bg-gray-200"></div>
-        <div className="h-7 flex-1 rounded-md bg-gray-200"></div>
-        <div className="h-7 w-8 rounded-md bg-gray-200"></div>
+        <div className="bg-muted h-7 flex-1 rounded-md"></div>
+        <div className="bg-muted h-7 flex-1 rounded-md"></div>
+        <div className="bg-muted h-7 w-8 rounded-md"></div>
       </div>
     </div>
   );

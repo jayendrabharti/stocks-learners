@@ -1,5 +1,6 @@
 import AuthGuard from "@/auth/AuthGuard";
 import Unauthenticated from "@/components/auth/Unauthenticated";
+import { StockSearch } from "@/components/trading";
 import { ReactNode } from "react";
 
 export default async function MainLayout({

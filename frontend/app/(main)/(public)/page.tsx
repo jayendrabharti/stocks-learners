@@ -15,79 +15,108 @@ import {
   Zap,
   PiggyBank,
   LineChart,
+  Activity,
+  Brain,
+  Lightbulb,
+  Award,
 } from "lucide-react";
+import { Button } from "../../../components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../../../components/ui/card";
+import { Badge } from "../../../components/ui/badge";
 
 export default function Home() {
   const features = [
     {
-      icon: <PiggyBank className="h-8 w-8 text-green-600" />,
-      title: "Virtual Trading",
+      icon: <PiggyBank className="text-chart-1 h-8 w-8" />,
+      title: "₹10 Lakh Virtual Money",
       description:
-        "Practice with ₹10,00,000 virtual money. No real money at risk.",
+        "Start with ₹10,00,000 virtual cash to practice trading. Learn without any financial risk to your real money.",
     },
     {
-      icon: <LineChart className="h-8 w-8 text-blue-600" />,
-      title: "Real Market Data",
-      description: "Live stock prices and market data from NSE and BSE.",
+      icon: <Activity className="text-chart-2 h-8 w-8" />,
+      title: "Live Market Data",
+      description:
+        "Access real-time stock prices, market movements, and live data from NSE and BSE exchanges.",
     },
     {
-      icon: <Target className="h-8 w-8 text-purple-600" />,
-      title: "Portfolio Tracking",
-      description: "Monitor your investments and track P&L in real-time.",
+      icon: <Target className="text-chart-4 h-8 w-8" />,
+      title: "Portfolio Management",
+      description:
+        "Track your virtual investments, monitor profit/loss, and analyze your trading performance in real-time.",
     },
     {
-      icon: <BookOpen className="h-8 w-8 text-orange-600" />,
-      title: "Learn Trading",
-      description: "Master stock trading without the fear of losing money.",
+      icon: <Brain className="text-chart-5 h-8 w-8" />,
+      title: "Trading Education",
+      description:
+        "Learn stock market fundamentals, trading strategies, and risk management without losing real money.",
+    },
+    {
+      icon: <BarChart3 className="text-chart-1 h-8 w-8" />,
+      title: "Real Market Conditions",
+      description:
+        "Experience actual market volatility, price movements, and trading scenarios in a safe environment.",
+    },
+    {
+      icon: <Lightbulb className="text-chart-2 h-8 w-8" />,
+      title: "Strategy Testing",
+      description:
+        "Test different trading strategies and investment approaches before applying them with real money.",
     },
   ];
 
   const benefits = [
-    "Practice trading strategies risk-free",
-    "Learn from real market conditions",
-    "Build confidence before real trading",
-    "Track performance and improve skills",
-    "No registration fees or hidden costs",
-    "Access to live market data",
+    "Practice trading with ₹10 lakh virtual money completely risk-free",
+    "Learn from real market data and live price movements",
+    "Build confidence and develop trading skills before investing real money",
+    "Test and refine your investment strategies without financial consequences",
+    "Understand market volatility and timing without real losses",
+    "Access comprehensive portfolio tracking and performance analytics",
+    "Experience real trading scenarios in a safe learning environment",
+    "No registration fees, hidden costs, or financial commitments required",
   ];
 
-  const testimonials = [
+  const learningStats = [
     {
-      name: "Priya Sharma",
-      role: "Engineering Student",
-      content:
-        "Finally learned stock trading without losing my savings. The virtual money feature is perfect for beginners!",
-      rating: 5,
+      icon: <Shield className="text-chart-1 h-8 w-8" />,
+      title: "100% Risk-Free",
+      description:
+        "Learn trading without any financial risk to your real money",
+      highlight: "Safe Learning",
     },
     {
-      name: "Rajesh Kumar",
-      role: "Software Developer",
-      content:
-        "Great platform to practice investment strategies. The interface is clean and easy to use.",
-      rating: 5,
+      icon: <Activity className="text-chart-2 h-8 w-8" />,
+      title: "Real Market Data",
+      description:
+        "Practice with live stock prices and actual market conditions",
+      highlight: "Live Data",
     },
     {
-      name: "Anita Patel",
-      role: "Finance Graduate",
-      content:
-        "Helped me understand market dynamics before I started real trading. Highly recommend!",
-      rating: 5,
+      icon: <Award className="text-chart-4 h-8 w-8" />,
+      title: "Comprehensive Training",
+      description:
+        "Build skills from basic concepts to advanced trading strategies",
+      highlight: "Full Education",
     },
   ];
 
   return (
     <div className="w-full">
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 px-6 pt-16 pb-24">
+      <section className="from-muted/30 via-background to-muted/20 relative overflow-hidden bg-gradient-to-br px-6 pt-16 pb-24">
         <div className="mx-auto max-w-7xl">
           <div className="grid items-center gap-12 lg:grid-cols-2">
             <div className="space-y-8">
               <div className="space-y-4">
-                <h1 className="text-4xl leading-tight font-bold text-gray-900 md:text-6xl">
+                <h1 className="text-foreground text-4xl leading-tight font-bold md:text-6xl">
                   Practice Stock Trading with{" "}
-                  <span className="text-green-600">Virtual Money</span>
+                  <span className="text-chart-1">Virtual Money</span>
                 </h1>
-                <p className="text-xl leading-relaxed text-gray-600">
+                <p className="text-muted-foreground text-xl leading-relaxed">
                   Master the art of stock trading without risking real money.
                   Start with ₹10,00,000 virtual cash and learn from real market
                   conditions.
@@ -95,32 +124,37 @@ export default function Home() {
               </div>
 
               <div className="flex flex-col gap-4 sm:flex-row">
-                <Link
-                  href="/login"
-                  className="inline-flex items-center justify-center rounded-lg bg-green-600 px-8 py-4 text-lg font-semibold text-white transition-colors hover:bg-green-700"
+                <Button
+                  size="lg"
+                  className="bg-chart-1 hover:bg-chart-1/90"
+                  asChild
                 >
-                  Start Trading Now
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Link>
-                <Link
-                  href="#features"
-                  className="inline-flex items-center justify-center rounded-lg border-2 border-green-600 bg-white px-8 py-4 text-lg font-semibold text-green-600 transition-colors hover:bg-green-50"
+                  <Link href="/login">
+                    Start Trading Now
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Link>
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="border-chart-1 text-chart-1 hover:bg-chart-1/5"
+                  asChild
                 >
-                  Learn More
-                </Link>
+                  <Link href="#features">Learn More</Link>
+                </Button>
               </div>
 
-              <div className="flex items-center space-x-8 text-sm text-gray-500">
+              <div className="text-muted-foreground flex items-center space-x-8 text-sm">
                 <div className="flex items-center space-x-2">
-                  <Shield className="h-4 w-4 text-green-500" />
+                  <Shield className="text-chart-1 h-4 w-4" />
                   <span>100% Safe</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Zap className="h-4 w-4 text-blue-500" />
+                  <Zap className="text-chart-2 h-4 w-4" />
                   <span>Real-time Data</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Users className="h-4 w-4 text-purple-500" />
+                  <Users className="text-chart-4 h-4 w-4" />
                   <span>Beginner Friendly</span>
                 </div>
               </div>
@@ -146,102 +180,97 @@ export default function Home() {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="bg-white py-24">
-        <div className="mx-auto max-w-7xl px-6">
-          <div className="mb-16 text-center">
-            <h2 className="mb-4 text-3xl font-bold text-gray-900 md:text-4xl">
-              Why Choose Stock Learners?
+      {/* Features Section */}
+      <section id="features" className="px-6 py-24">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-16 space-y-4 text-center">
+            <h2 className="text-foreground text-3xl font-bold md:text-5xl">
+              Everything You Need to{" "}
+              <span className="text-chart-1">Learn Trading</span>
             </h2>
-            <p className="mx-auto max-w-3xl text-xl text-gray-600">
-              The perfect platform to learn stock trading with all the features
-              you need to succeed in the market.
+            <p className="text-muted-foreground text-xl">
+              Professional-grade tools and features to accelerate your trading
+              education.
             </p>
           </div>
 
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
             {features.map((feature, index) => (
-              <div
+              <Card
                 key={index}
-                className="group rounded-2xl border border-gray-200 p-8 transition-all duration-300 hover:border-green-300 hover:shadow-xl"
+                className="group border-border bg-background hover:border-chart-1/20 transition-all duration-300 hover:shadow-lg"
               >
-                <div className="mb-6 transition-transform duration-300 group-hover:scale-110">
-                  {feature.icon}
-                </div>
-                <h3 className="mb-3 text-xl font-semibold text-gray-900">
-                  {feature.title}
-                </h3>
-                <p className="leading-relaxed text-gray-600">
-                  {feature.description}
-                </p>
-              </div>
+                <CardHeader className="pb-4">
+                  <div className="bg-chart-1/10 text-chart-1 group-hover:bg-chart-1 mb-4 flex h-16 w-16 items-center justify-center rounded-lg transition-colors group-hover:text-white">
+                    {feature.icon}
+                  </div>
+                  <CardTitle className="text-foreground text-xl">
+                    {feature.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">{feature.description}</p>
+                </CardContent>
+              </Card>
             ))}
           </div>
         </div>
       </section>
 
       {/* Benefits Section */}
-      <section className="bg-gray-50 py-24">
-        <div className="mx-auto max-w-7xl px-6">
-          <div className="grid items-center gap-16 lg:grid-cols-2">
-            <div>
-              <h2 className="mb-6 text-3xl font-bold text-gray-900 md:text-4xl">
-                Everything You Need to Master Stock Trading
-              </h2>
-              <p className="mb-8 text-lg text-gray-600">
-                Our platform provides all the tools and features you need to
-                learn trading effectively and build confidence in your
-                investment decisions.
-              </p>
+      <section className="bg-muted/30 px-6 py-24">
+        <div className="mx-auto max-w-7xl">
+          <div className="grid items-center gap-12 lg:grid-cols-2">
+            <div className="space-y-8">
+              <div className="space-y-4">
+                <h2 className="text-foreground text-3xl font-bold md:text-4xl">
+                  Why Choose Our{" "}
+                  <span className="text-chart-1">Trading Platform?</span>
+                </h2>
+                <p className="text-muted-foreground text-lg">
+                  Master stock trading with our comprehensive virtual trading
+                  platform designed for learners and practice.
+                </p>
+              </div>
 
               <div className="space-y-4">
                 {benefits.map((benefit, index) => (
                   <div key={index} className="flex items-center space-x-3">
-                    <CheckCircle className="h-5 w-5 flex-shrink-0 text-green-600" />
-                    <span className="text-gray-700">{benefit}</span>
+                    <CheckCircle className="text-chart-1 h-6 w-6 flex-shrink-0" />
+                    <span className="text-foreground">{benefit}</span>
                   </div>
                 ))}
               </div>
 
-              <div className="mt-8">
-                <Link
-                  href="/login"
-                  className="inline-flex items-center rounded-lg bg-green-600 px-6 py-3 text-base font-medium text-white transition-colors hover:bg-green-700"
-                >
-                  Get Started Free
-                  <ArrowRight className="ml-2 h-4 w-4" />
+              <Button
+                size="lg"
+                className="bg-chart-1 hover:bg-chart-1/90"
+                asChild
+              >
+                <Link href="/login">
+                  Get Started Today
+                  <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
-              </div>
+              </Button>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-4">
-                <div className="rounded-xl bg-white p-6 shadow-lg">
-                  <div className="mb-1 text-2xl font-bold text-green-600">
-                    ₹10L
+            <div className="hidden lg:block">
+              <div className="from-chart-1/10 to-chart-2/10 relative rounded-2xl bg-gradient-to-br p-8">
+                <div className="from-chart-1/5 absolute inset-0 rounded-2xl bg-gradient-to-br to-transparent" />
+                <div className="relative">
+                  <BarChart3 className="text-chart-1 mb-6 h-24 w-24" />
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-4">
+                      <div className="bg-chart-1 h-3 w-20 rounded-full" />
+                      <div className="bg-chart-2 h-3 w-16 rounded-full" />
+                      <div className="bg-chart-4 h-3 w-12 rounded-full" />
+                    </div>
+                    <div className="flex items-center space-x-4">
+                      <div className="bg-chart-2 h-3 w-16 rounded-full" />
+                      <div className="bg-chart-1 h-3 w-24 rounded-full" />
+                      <div className="bg-chart-5 h-3 w-8 rounded-full" />
+                    </div>
                   </div>
-                  <div className="text-sm text-gray-600">
-                    Virtual Starting Capital
-                  </div>
-                </div>
-                <div className="rounded-xl bg-white p-6 shadow-lg">
-                  <div className="mb-1 text-2xl font-bold text-blue-600">
-                    Live
-                  </div>
-                  <div className="text-sm text-gray-600">Market Data</div>
-                </div>
-              </div>
-              <div className="mt-8 space-y-4">
-                <div className="rounded-xl bg-white p-6 shadow-lg">
-                  <div className="mb-1 text-2xl font-bold text-purple-600">
-                    0
-                  </div>
-                  <div className="text-sm text-gray-600">Real Money Risk</div>
-                </div>
-                <div className="rounded-xl bg-white p-6 shadow-lg">
-                  <div className="mb-1 text-2xl font-bold text-orange-600">
-                    24/7
-                  </div>
-                  <div className="text-sm text-gray-600">Learning Access</div>
                 </div>
               </div>
             </div>
@@ -249,71 +278,121 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Testimonials Section */}
-      <section className="bg-white py-24">
+      {/* Learning Benefits Section */}
+      <section className="bg-background py-24">
         <div className="mx-auto max-w-7xl px-6">
           <div className="mb-16 text-center">
-            <h2 className="mb-4 text-3xl font-bold text-gray-900 md:text-4xl">
-              What Our Users Say
+            <h2 className="text-foreground mb-4 text-3xl font-bold md:text-4xl">
+              Why Learn Trading with Virtual Money?
             </h2>
-            <p className="text-xl text-gray-600">
-              Join thousands of successful learners who started their trading
-              journey with us.
+            <p className="text-muted-foreground text-lg">
+              Master the stock market without risking your hard-earned money.
+              Build skills and confidence first.
             </p>
           </div>
 
-          <div className="grid gap-8 md:grid-cols-3">
-            {testimonials.map((testimonial, index) => (
-              <div key={index} className="rounded-2xl bg-gray-50 p-8">
-                <div className="mb-4 flex items-center">
-                  {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className="h-4 w-4 fill-current text-yellow-400"
-                    />
-                  ))}
-                </div>
-                <p className="mb-6 text-gray-700 italic">
-                  "{testimonial.content}"
-                </p>
-                <div>
-                  <div className="font-semibold text-gray-900">
-                    {testimonial.name}
+          <div className="grid gap-8 md:grid-cols-1 lg:grid-cols-3">
+            {learningStats.map((stat, index) => (
+              <Card
+                key={index}
+                className="border-border bg-background text-center transition-shadow hover:shadow-lg"
+              >
+                <CardContent className="pt-8 pb-6">
+                  <div className="mb-6 flex justify-center">
+                    <div className="bg-chart-1/10 rounded-full p-4">
+                      {stat.icon}
+                    </div>
                   </div>
-                  <div className="text-sm text-gray-600">
-                    {testimonial.role}
-                  </div>
-                </div>
-              </div>
+                  <Badge
+                    variant="secondary"
+                    className="bg-chart-1/10 text-chart-1 mb-4"
+                  >
+                    {stat.highlight}
+                  </Badge>
+                  <h3 className="text-foreground mb-3 text-xl font-bold">
+                    {stat.title}
+                  </h3>
+                  <p className="text-muted-foreground">{stat.description}</p>
+                </CardContent>
+              </Card>
             ))}
+          </div>
+
+          <div className="mt-16 text-center">
+            <div className="mx-auto max-w-3xl space-y-6">
+              <h3 className="text-foreground text-2xl font-bold">
+                Perfect for Beginners and Experienced Traders
+              </h3>
+              <p className="text-muted-foreground text-lg">
+                Whether you're completely new to trading or an experienced
+                investor looking to test new strategies, our virtual trading
+                platform provides a safe environment to learn, practice, and
+                improve your skills without any financial risk.
+              </p>
+              <Button
+                size="lg"
+                className="bg-chart-1 hover:bg-chart-1/90"
+                asChild
+              >
+                <Link href="/login">
+                  Start Learning Today
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Link>
+              </Button>
+            </div>
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="bg-gradient-to-r from-green-600 to-blue-600 py-24">
-        <div className="mx-auto max-w-4xl px-6 text-center">
-          <h2 className="mb-6 text-3xl font-bold text-white md:text-4xl">
-            Ready to Start Your Trading Journey?
-          </h2>
-          <p className="mb-8 text-xl text-green-100">
-            Join thousands of learners who are mastering stock trading with
-            virtual money. No risk, just learning.
-          </p>
-          <div className="flex flex-col justify-center gap-4 sm:flex-row">
-            <Link
-              href="/login"
-              className="inline-flex items-center justify-center rounded-lg bg-white px-8 py-4 text-lg font-semibold text-green-600 transition-colors hover:bg-gray-50"
-            >
-              Create Free Account
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Link>
-            <Link
-              href="/login"
-              className="inline-flex items-center justify-center rounded-lg border-2 border-white px-8 py-4 text-lg font-semibold text-white transition-colors hover:bg-white hover:text-green-600"
-            >
-              Sign In
-            </Link>
+      <section className="from-chart-1/10 via-chart-2/5 to-chart-4/10 bg-gradient-to-br px-6 py-24">
+        <div className="mx-auto max-w-4xl text-center">
+          <div className="space-y-8">
+            <div className="space-y-4">
+              <h2 className="text-foreground text-3xl font-bold md:text-5xl">
+                Ready to Start Your Trading Journey?
+              </h2>
+              <p className="text-muted-foreground text-xl">
+                Begin learning with ₹10 lakh virtual money today. No credit card
+                required, completely free to start.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
+              <Button
+                size="lg"
+                className="bg-chart-1 hover:bg-chart-1/90"
+                asChild
+              >
+                <Link href="/login">
+                  Start Virtual Trading
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Link>
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                className="border-chart-1 text-chart-1 hover:bg-chart-1/5"
+                asChild
+              >
+                <Link href="#features">Learn More</Link>
+              </Button>
+            </div>
+
+            <div className="text-muted-foreground flex items-center justify-center space-x-8 text-sm">
+              <div className="flex items-center space-x-2">
+                <Shield className="text-chart-1 h-4 w-4" />
+                <span>100% Risk-Free</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Zap className="text-chart-2 h-4 w-4" />
+                <span>Instant Setup</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <PiggyBank className="text-chart-4 h-4 w-4" />
+                <span>Virtual Money</span>
+              </div>
+            </div>
           </div>
         </div>
       </section>

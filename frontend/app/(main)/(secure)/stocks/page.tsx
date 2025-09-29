@@ -134,7 +134,7 @@ function StockCard({ stock, type = "gainer", size = "md" }: StockCardProps) {
                   {companyName}
                 </div>
                 {type === "volume" && "volume" in stock && stock.volume && (
-                  <div className="mt-1 text-xs text-purple-600">
+                  <div className="text-chart-4 mt-1 text-xs">
                     Vol: {formatNumber(stock.volume)}
                   </div>
                 )}
@@ -156,8 +156,8 @@ function StockCard({ stock, type = "gainer", size = "md" }: StockCardProps) {
                   isNeutral
                     ? "text-muted-foreground"
                     : isPositive
-                      ? "text-green-600"
-                      : "text-red-600",
+                      ? "text-chart-1"
+                      : "text-destructive",
                 )}
               >
                 {!isNeutral &&
@@ -256,247 +256,146 @@ export default function StocksPage() {
   ];
 
   return (
-    <>
-      <div className="border-border bg-background sticky top-0 left-0 mb-2 flex w-full border-b p-2 shadow-md">
-        <StockSearch placeholder="Search for stocks, ETFs, indices... (e.g., RELIANCE, TCS, NIFTY)" />
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Left Column - Portfolio & Quick Stats */}
-        <div className="space-y-6 lg:col-span-2">
-          {/* Portfolio Overview */}
-          <Card className="border-border/50 shadow-lg">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-xl">Portfolio Overview</CardTitle>
-                <div className="text-muted-foreground flex items-center gap-2 text-sm">
-                  <Clock className="h-4 w-4" />
-                  <span>Updated {lastUpdated.toLocaleTimeString()}</span>
-                  <div
-                    className={`h-2 w-2 rounded-full ${marketIsOpen ? "bg-green-500" : "bg-red-500"}`}
-                  />
-                  <span>{marketIsOpen ? "Market Open" : "Market Closed"}</span>
-                </div>
+    <div className="grid grid-cols-1 gap-6 p-2 lg:grid-cols-3">
+      {/* Left Column - Portfolio & Quick Stats */}
+      <div className="space-y-6 lg:col-span-2">
+        {/* Portfolio Overview */}
+        <Card className="border-border/50 shadow-lg">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-xl">Portfolio Overview</CardTitle>
+              <div className="text-muted-foreground flex items-center gap-2 text-sm">
+                <Clock className="h-4 w-4" />
+                <span>Updated {lastUpdated.toLocaleTimeString()}</span>
+                <div
+                  className={`h-2 w-2 rounded-full ${marketIsOpen ? "bg-chart-1" : "bg-destructive"}`}
+                />
+                <span>{marketIsOpen ? "Market Open" : "Market Closed"}</span>
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-                <div className="text-center md:text-left">
-                  <div className="mb-2 flex items-center justify-center md:justify-start">
-                    <div className="mr-2 rounded-lg bg-green-100 p-2">
-                      <Wallet className="h-5 w-5 text-green-600" />
-                    </div>
-                    <span className="text-muted-foreground text-sm font-medium">
-                      Total Value
-                    </span>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+              <div className="text-center md:text-left">
+                <div className="mb-2 flex items-center justify-center md:justify-start">
+                  <div className="bg-chart-1/10 mr-2 rounded-lg p-2">
+                    <Wallet className="text-chart-1 h-5 w-5" />
                   </div>
-                  <p className="text-foreground text-3xl font-bold">
-                    ₹{portfolioStats.totalValue.toLocaleString()}
-                  </p>
-                  <Badge variant="secondary" className="mt-1">
-                    Virtual Money
-                  </Badge>
+                  <span className="text-muted-foreground text-sm font-medium">
+                    Total Value
+                  </span>
                 </div>
-
-                <div className="text-center md:text-left">
-                  <div className="mb-2 flex items-center justify-center md:justify-start">
-                    <div className="mr-2 rounded-lg bg-blue-100 p-2">
-                      <Activity className="h-5 w-5 text-blue-600" />
-                    </div>
-                    <span className="text-muted-foreground text-sm font-medium">
-                      Invested
-                    </span>
-                  </div>
-                  <p className="text-foreground text-3xl font-bold">
-                    ₹{portfolioStats.investedValue.toLocaleString()}
-                  </p>
-                  <p className="text-muted-foreground mt-1 text-sm">
-                    Available: ₹{portfolioStats.currentValue.toLocaleString()}
-                  </p>
-                </div>
-
-                <div className="text-center md:text-left">
-                  <div className="mb-2 flex items-center justify-center md:justify-start">
-                    <div className="mr-2 rounded-lg bg-purple-100 p-2">
-                      <PieChart className="h-5 w-5 text-purple-600" />
-                    </div>
-                    <span className="text-muted-foreground text-sm font-medium">
-                      Total P&L
-                    </span>
-                  </div>
-                  <p className="text-muted-foreground text-3xl font-bold">
-                    ₹{portfolioStats.totalPnL.toLocaleString()}
-                  </p>
-                  <Badge
-                    variant={
-                      portfolioStats.totalPnLPercent >= 0
-                        ? "default"
-                        : "destructive"
-                    }
-                    className="mt-1"
-                  >
-                    {portfolioStats.totalPnLPercent >= 0 ? "+" : ""}
-                    {portfolioStats.totalPnLPercent}%
-                  </Badge>
-                </div>
+                <p className="text-foreground text-3xl font-bold">
+                  ₹{portfolioStats.totalValue.toLocaleString()}
+                </p>
+                <Badge variant="secondary" className="mt-1">
+                  Virtual Money
+                </Badge>
               </div>
 
-              <div className="border-border mt-6 border-t pt-6">
-                <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                  <Button
-                    variant="outline"
-                    className="h-auto flex-col gap-2 p-4 hover:border-green-200 hover:bg-green-50"
-                  >
-                    <Plus className="h-5 w-5 text-green-600" />
-                    <span className="font-medium text-green-600">
-                      Buy Stocks
-                    </span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="h-auto flex-col gap-2 p-4 hover:border-blue-200 hover:bg-blue-50"
-                  >
-                    <BarChart3 className="h-5 w-5 text-blue-600" />
-                    <span className="font-medium text-blue-600">Portfolio</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="h-auto flex-col gap-2 p-4 hover:border-purple-200 hover:bg-purple-50"
-                  >
-                    <Eye className="h-5 w-5 text-purple-600" />
-                    <span className="font-medium text-purple-600">
-                      Watchlist
-                    </span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="h-auto flex-col gap-2 p-4 hover:border-orange-200 hover:bg-orange-50"
-                  >
-                    <Clock className="h-5 w-5 text-orange-600" />
-                    <span className="font-medium text-orange-600">History</span>
-                  </Button>
+              <div className="text-center md:text-left">
+                <div className="mb-2 flex items-center justify-center md:justify-start">
+                  <div className="bg-chart-2/10 mr-2 rounded-lg p-2">
+                    <Activity className="text-chart-2 h-5 w-5" />
+                  </div>
+                  <span className="text-muted-foreground text-sm font-medium">
+                    Invested
+                  </span>
                 </div>
+                <p className="text-foreground text-3xl font-bold">
+                  ₹{portfolioStats.investedValue.toLocaleString()}
+                </p>
+                <p className="text-muted-foreground mt-1 text-sm">
+                  Available: ₹{portfolioStats.currentValue.toLocaleString()}
+                </p>
               </div>
-            </CardContent>
-          </Card>
 
-          {/* Market Movers */}
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-            {/* Top Gainers */}
-            <Card className="border-border/50 shadow-lg">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="rounded-lg bg-green-100 p-2">
-                      <TrendingUp className="h-5 w-5 text-green-600" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-lg">Top Gainers</CardTitle>
-                      <div className="text-muted-foreground flex items-center gap-2 text-xs">
-                        <div
-                          className={`h-2 w-2 rounded-full ${marketIsOpen ? "bg-green-500" : "bg-red-500"}`}
-                        />
-                        {marketIsOpen ? "Live" : "Closed"}
-                      </div>
-                    </div>
+              <div className="text-center md:text-left">
+                <div className="mb-2 flex items-center justify-center md:justify-start">
+                  <div className="bg-chart-4/10 mr-2 rounded-lg p-2">
+                    <PieChart className="text-chart-4 h-5 w-5" />
                   </div>
-                  <Link href="/stocks/top-gainers">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-green-600 hover:bg-green-50 hover:text-green-700"
-                    >
-                      View All
-                      <ChevronRight className="ml-1 h-4 w-4" />
-                    </Button>
-                  </Link>
+                  <span className="text-muted-foreground text-sm font-medium">
+                    Total P&L
+                  </span>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {loading
-                  ? Array.from({ length: 4 }).map((_, index) => (
-                      <SearchSkeleton key={index} />
-                    ))
-                  : topGainers.map((stock, index) => (
-                      <StockCard
-                        key={stock.searchId || index}
-                        stock={stock}
-                        type="gainer"
-                        size="sm"
-                      />
-                    ))}
-              </CardContent>
-            </Card>
+                <p className="text-muted-foreground text-3xl font-bold">
+                  ₹{portfolioStats.totalPnL.toLocaleString()}
+                </p>
+                <Badge
+                  variant={
+                    portfolioStats.totalPnLPercent >= 0
+                      ? "default"
+                      : "destructive"
+                  }
+                  className="mt-1"
+                >
+                  {portfolioStats.totalPnLPercent >= 0 ? "+" : ""}
+                  {portfolioStats.totalPnLPercent}%
+                </Badge>
+              </div>
+            </div>
 
-            {/* Top Losers */}
-            <Card className="border-border/50 shadow-lg">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="rounded-lg bg-red-100 p-2">
-                      <TrendingDown className="h-5 w-5 text-red-600" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-lg">Top Losers</CardTitle>
-                      <div className="text-muted-foreground flex items-center gap-2 text-xs">
-                        <div
-                          className={`h-2 w-2 rounded-full ${marketIsOpen ? "bg-green-500" : "bg-red-500"}`}
-                        />
-                        {marketIsOpen ? "Live" : "Closed"}
-                      </div>
-                    </div>
-                  </div>
-                  <Link href="/stocks/top-losers">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-red-600 hover:bg-red-50 hover:text-red-700"
-                    >
-                      View All
-                      <ChevronRight className="ml-1 h-4 w-4" />
-                    </Button>
-                  </Link>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {loading
-                  ? Array.from({ length: 4 }).map((_, index) => (
-                      <SearchSkeleton key={index} />
-                    ))
-                  : topLosers.map((stock, index) => (
-                      <StockCard
-                        key={stock.searchId || index}
-                        stock={stock}
-                        type="loser"
-                        size="sm"
-                      />
-                    ))}
-              </CardContent>
-            </Card>
-          </div>
+            <div className="border-border mt-6 border-t pt-6">
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                <Button
+                  variant="outline"
+                  className="hover:border-chart-1/30 hover:bg-chart-1/5 h-auto flex-col gap-2 p-4"
+                >
+                  <Plus className="text-chart-1 h-5 w-5" />
+                  <span className="text-chart-1 font-medium">Buy Stocks</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className="hover:border-chart-2/30 hover:bg-chart-2/5 h-auto flex-col gap-2 p-4"
+                >
+                  <BarChart3 className="text-chart-2 h-5 w-5" />
+                  <span className="text-chart-2 font-medium">Portfolio</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className="hover:border-chart-4/30 hover:bg-chart-4/5 h-auto flex-col gap-2 p-4"
+                >
+                  <Eye className="text-chart-4 h-5 w-5" />
+                  <span className="text-chart-4 font-medium">Watchlist</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className="hover:border-chart-5/30 hover:bg-chart-5/5 h-auto flex-col gap-2 p-4"
+                >
+                  <Clock className="text-chart-5 h-5 w-5" />
+                  <span className="text-chart-5 font-medium">History</span>
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-          {/* Most Bought Stocks */}
+        {/* Market Movers */}
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          {/* Top Gainers */}
           <Card className="border-border/50 shadow-lg">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="rounded-lg bg-blue-100 p-2">
-                    <Users className="h-5 w-5 text-blue-600" />
+                  <div className="bg-chart-1/10 rounded-lg p-2">
+                    <TrendingUp className="text-chart-1 h-5 w-5" />
                   </div>
                   <div>
-                    <CardTitle className="text-lg">
-                      Most Bought on Groww
-                    </CardTitle>
-                    <p className="text-muted-foreground text-sm">
-                      Popular among investors
-                    </p>
+                    <CardTitle className="text-lg">Top Gainers</CardTitle>
+                    <div className="text-muted-foreground flex items-center gap-2 text-xs">
+                      <div
+                        className={`h-2 w-2 rounded-full ${marketIsOpen ? "bg-chart-1" : "bg-destructive"}`}
+                      />
+                      {marketIsOpen ? "Live" : "Closed"}
+                    </div>
                   </div>
                 </div>
-                <Link href="/stocks/most-bought">
+                <Link href="/stocks/top-gainers">
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+                    className="text-chart-1 hover:bg-chart-1/5 hover:text-chart-1"
                   >
                     View All
                     <ChevronRight className="ml-1 h-4 w-4" />
@@ -504,44 +403,45 @@ export default function StocksPage() {
                 </Link>
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                {loading
-                  ? Array.from({ length: 4 }).map((_, index) => (
-                      <SearchSkeleton key={index} />
-                    ))
-                  : mostBought.map((stock, index) => (
-                      <StockCard
-                        key={stock.company.searchId || index}
-                        stock={stock}
-                        type="popular"
-                        size="sm"
-                      />
-                    ))}
-              </div>
+            <CardContent className="space-y-3">
+              {loading
+                ? Array.from({ length: 4 }).map((_, index) => (
+                    <SearchSkeleton key={index} />
+                  ))
+                : topGainers.map((stock, index) => (
+                    <StockCard
+                      key={stock.searchId || index}
+                      stock={stock}
+                      type="gainer"
+                      size="sm"
+                    />
+                  ))}
             </CardContent>
           </Card>
 
-          {/* Volume Shockers */}
+          {/* Top Losers */}
           <Card className="border-border/50 shadow-lg">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="rounded-lg bg-purple-100 p-2">
-                    <Volume2 className="h-5 w-5 text-purple-600" />
+                  <div className="bg-destructive/10 rounded-lg p-2">
+                    <TrendingDown className="text-destructive h-5 w-5" />
                   </div>
                   <div>
-                    <CardTitle className="text-lg">Volume Shockers</CardTitle>
-                    <p className="text-muted-foreground text-sm">
-                      Unusual trading activity
-                    </p>
+                    <CardTitle className="text-lg">Top Losers</CardTitle>
+                    <div className="text-muted-foreground flex items-center gap-2 text-xs">
+                      <div
+                        className={`h-2 w-2 rounded-full ${marketIsOpen ? "bg-chart-1" : "bg-destructive"}`}
+                      />
+                      {marketIsOpen ? "Live" : "Closed"}
+                    </div>
                   </div>
                 </div>
-                <Link href="/stocks/volume-shockers">
+                <Link href="/stocks/top-losers">
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-purple-600 hover:bg-purple-50 hover:text-purple-700"
+                    className="text-destructive hover:bg-destructive/5 hover:text-destructive"
                   >
                     View All
                     <ChevronRight className="ml-1 h-4 w-4" />
@@ -549,130 +449,220 @@ export default function StocksPage() {
                 </Link>
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-                {loading
-                  ? Array.from({ length: 6 }).map((_, index) => (
-                      <SearchSkeleton key={index} />
-                    ))
-                  : volumeShockers.map((stock, index) => (
-                      <StockCard
-                        key={stock.searchId || index}
-                        stock={stock}
-                        type="volume"
-                        size="sm"
-                      />
-                    ))}
-              </div>
+            <CardContent className="space-y-3">
+              {loading
+                ? Array.from({ length: 4 }).map((_, index) => (
+                    <SearchSkeleton key={index} />
+                  ))
+                : topLosers.map((stock, index) => (
+                    <StockCard
+                      key={stock.searchId || index}
+                      stock={stock}
+                      type="loser"
+                      size="sm"
+                    />
+                  ))}
             </CardContent>
           </Card>
         </div>
 
-        {/* Right Column - Watchlist & Features */}
-        <div className="space-y-6">
-          {/* Watchlist */}
-          <div className="rounded-2xl border border-gray-200 bg-white shadow-lg">
-            <div className="border-b border-gray-200 p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <Star className="mr-2 h-5 w-5 text-yellow-500" />
-                  <h3 className="text-lg font-bold text-gray-900">
-                    Market Indices
-                  </h3>
+        {/* Most Bought Stocks */}
+        <Card className="border-border/50 shadow-lg">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="bg-chart-2/10 rounded-lg p-2">
+                  <Users className="text-chart-2 h-5 w-5" />
                 </div>
-                <button className="text-sm font-medium text-blue-600 hover:text-blue-700">
-                  View All
-                </button>
+                <div>
+                  <CardTitle className="text-lg">
+                    Most Bought on Groww
+                  </CardTitle>
+                  <p className="text-muted-foreground text-sm">
+                    Popular among investors
+                  </p>
+                </div>
               </div>
-            </div>
-            <div className="space-y-4 p-6">
-              {watchlistStocks.map((stock, index) => (
-                <div
-                  key={index}
-                  className="flex cursor-pointer items-center justify-between rounded-lg bg-gray-50 p-3 transition-colors hover:bg-gray-100"
+              <Link href="/stocks/most-bought">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-chart-2 hover:bg-chart-2/5 hover:text-chart-2"
                 >
-                  <div>
-                    <p className="font-semibold text-gray-900">
-                      {stock.symbol}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      ₹{stock.price.toFixed(2)}
-                    </p>
-                  </div>
-                  <div
-                    className={`text-right ${stock.change >= 0 ? "text-green-600" : "text-red-600"}`}
-                  >
-                    <p className="font-semibold">
-                      {stock.change >= 0 ? "+" : ""}
-                      {stock.change.toFixed(2)}
-                    </p>
-                    <p className="text-sm">
-                      {stock.changePercent >= 0 ? "+" : ""}
-                      {stock.changePercent.toFixed(2)}%
-                    </p>
-                  </div>
-                </div>
-              ))}
+                  View All
+                  <ChevronRight className="ml-1 h-4 w-4" />
+                </Button>
+              </Link>
             </div>
-          </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              {loading
+                ? Array.from({ length: 4 }).map((_, index) => (
+                    <SearchSkeleton key={index} />
+                  ))
+                : mostBought.map((stock, index) => (
+                    <StockCard
+                      key={stock.company.searchId || index}
+                      stock={stock}
+                      type="popular"
+                      size="sm"
+                    />
+                  ))}
+            </div>
+          </CardContent>
+        </Card>
 
-          {/* Coming Soon Features */}
-          <div className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 to-purple-50 shadow-lg">
-            <div className="p-6">
-              <div className="mb-4 flex items-center">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600">
-                  <Star className="h-4 w-4 text-white" />
+        {/* Volume Shockers */}
+        <Card className="border-border/50 shadow-lg">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="bg-chart-4/10 rounded-lg p-2">
+                  <Volume2 className="text-chart-4 h-5 w-5" />
                 </div>
-                <h3 className="ml-3 text-lg font-bold text-gray-900">
-                  Coming Soon
+                <div>
+                  <CardTitle className="text-lg">Volume Shockers</CardTitle>
+                  <p className="text-muted-foreground text-sm">
+                    Unusual trading activity
+                  </p>
+                </div>
+              </div>
+              <Link href="/stocks/volume-shockers">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-chart-4 hover:bg-chart-4/5 hover:text-chart-4"
+                >
+                  View All
+                  <ChevronRight className="ml-1 h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+              {loading
+                ? Array.from({ length: 6 }).map((_, index) => (
+                    <SearchSkeleton key={index} />
+                  ))
+                : volumeShockers.map((stock, index) => (
+                    <StockCard
+                      key={stock.searchId || index}
+                      stock={stock}
+                      type="volume"
+                      size="sm"
+                    />
+                  ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Right Column - Watchlist & Features */}
+      <div className="space-y-6">
+        {/* Watchlist */}
+        <div className="border-border bg-background rounded-2xl border shadow-lg">
+          <div className="border-border border-b p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <Star className="text-chart-5 mr-2 h-5 w-5" />
+                <h3 className="text-foreground text-lg font-bold">
+                  Market Indices
                 </h3>
               </div>
-              <div className="space-y-3">
-                <div className="flex items-center rounded-lg bg-white/70 p-3">
-                  <div className="mr-3 h-2 w-2 rounded-full bg-blue-500"></div>
-                  <span className="text-sm font-medium text-gray-700">
-                    Options Trading
-                  </span>
-                </div>
-                <div className="flex items-center rounded-lg bg-white/70 p-3">
-                  <div className="mr-3 h-2 w-2 rounded-full bg-purple-500"></div>
-                  <span className="text-sm font-medium text-gray-700">
-                    Futures Trading
-                  </span>
-                </div>
-                <div className="flex items-center rounded-lg bg-white/70 p-3">
-                  <div className="mr-3 h-2 w-2 rounded-full bg-green-500"></div>
-                  <span className="text-sm font-medium text-gray-700">
-                    SIP Investment
-                  </span>
-                </div>
-                <div className="flex items-center rounded-lg bg-white/70 p-3">
-                  <div className="mr-3 h-2 w-2 rounded-full bg-orange-500"></div>
-                  <span className="text-sm font-medium text-gray-700">
-                    Mutual Funds
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Help & Support */}
-          <div className="rounded-2xl border border-gray-200 bg-white shadow-lg">
-            <div className="p-6">
-              <div className="mb-4 flex items-center">
-                <HelpCircle className="mr-2 h-5 w-5 text-blue-600" />
-                <h3 className="text-lg font-bold text-gray-900">Need Help?</h3>
-              </div>
-              <p className="mb-4 text-sm text-gray-600">
-                New to trading? Check out our learning resources to get started.
-              </p>
-              <button className="w-full rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-700">
-                Learning Center
+              <button className="text-chart-2 hover:text-chart-2/80 text-sm font-medium">
+                View All
               </button>
             </div>
           </div>
+          <div className="space-y-4 p-6">
+            {watchlistStocks.map((stock, index) => (
+              <div
+                key={index}
+                className="bg-muted/30 hover:bg-muted/50 flex cursor-pointer items-center justify-between rounded-lg p-3 transition-colors"
+              >
+                <div>
+                  <p className="text-foreground font-semibold">
+                    {stock.symbol}
+                  </p>
+                  <p className="text-muted-foreground text-sm">
+                    ₹{stock.price.toFixed(2)}
+                  </p>
+                </div>
+                <div
+                  className={`text-right ${stock.change >= 0 ? "text-chart-1" : "text-destructive"}`}
+                >
+                  <p className="font-semibold">
+                    {stock.change >= 0 ? "+" : ""}
+                    {stock.change.toFixed(2)}
+                  </p>
+                  <p className="text-sm">
+                    {stock.changePercent >= 0 ? "+" : ""}
+                    {stock.changePercent.toFixed(2)}%
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Coming Soon Features */}
+        <div className="border-border from-muted/30 to-muted/50 rounded-2xl border bg-gradient-to-br shadow-lg">
+          <div className="p-6">
+            <div className="mb-4 flex items-center">
+              <div className="bg-chart-2 flex h-8 w-8 items-center justify-center rounded-lg">
+                <Star className="h-4 w-4 text-white" />
+              </div>
+              <h3 className="text-foreground ml-3 text-lg font-bold">
+                Coming Soon
+              </h3>
+            </div>
+            <div className="space-y-3">
+              <div className="bg-background/70 flex items-center rounded-lg p-3">
+                <div className="bg-chart-2 mr-3 h-2 w-2 rounded-full"></div>
+                <span className="text-foreground text-sm font-medium">
+                  Options Trading
+                </span>
+              </div>
+              <div className="bg-background/70 flex items-center rounded-lg p-3">
+                <div className="bg-chart-4 mr-3 h-2 w-2 rounded-full"></div>
+                <span className="text-foreground text-sm font-medium">
+                  Futures Trading
+                </span>
+              </div>
+              <div className="bg-background/70 flex items-center rounded-lg p-3">
+                <div className="bg-chart-1 mr-3 h-2 w-2 rounded-full"></div>
+                <span className="text-foreground text-sm font-medium">
+                  SIP Investment
+                </span>
+              </div>
+              <div className="bg-background/70 flex items-center rounded-lg p-3">
+                <div className="bg-chart-5 mr-3 h-2 w-2 rounded-full"></div>
+                <span className="text-foreground text-sm font-medium">
+                  Mutual Funds
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Help & Support */}
+        <div className="border-border bg-card rounded-2xl border shadow-lg">
+          <div className="p-6">
+            <div className="mb-4 flex items-center">
+              <HelpCircle className="text-chart-2 mr-2 h-5 w-5" />
+              <h3 className="text-foreground text-lg font-bold">Need Help?</h3>
+            </div>
+            <p className="text-muted-foreground mb-4 text-sm">
+              New to trading? Check out our learning resources to get started.
+            </p>
+            <button className="bg-chart-2 hover:bg-chart-2/90 w-full rounded-lg px-4 py-2 font-medium text-white transition-colors">
+              Learning Center
+            </button>
+          </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
