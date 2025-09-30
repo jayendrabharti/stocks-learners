@@ -24,6 +24,7 @@ import {
   TrendingUp,
   Calendar,
 } from "lucide-react";
+import { WatchlistButton } from "@/components/trading/WatchlistButton";
 import {
   LineChart,
   Line,
@@ -412,13 +413,13 @@ export default function StockPage() {
             </div>
             <div className="flex justify-between gap-4">
               <span className="text-muted-foreground">High:</span>
-              <span className="font-medium text-chart-1">
+              <span className="text-chart-1 font-medium">
                 ₹{data.high.toFixed(2)}
               </span>
             </div>
             <div className="flex justify-between gap-4">
               <span className="text-muted-foreground">Low:</span>
-              <span className="font-medium text-destructive">
+              <span className="text-destructive font-medium">
                 ₹{data.low.toFixed(2)}
               </span>
             </div>
@@ -580,14 +581,28 @@ export default function StockPage() {
           <div className="flex-1 space-y-6">
             {/* Header Section */}
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-              <div>
-                <h1 className="text-primary text-3xl font-bold">
-                  {instrument?.name}
-                </h1>
-                <p className="text-muted-foreground mt-1">
-                  {instrument?.trading_symbol} • {exchange} •{" "}
-                  {instrument?.segment}
-                </p>
+              <div className="flex items-start gap-4">
+                <div>
+                  <h1 className="text-primary text-3xl font-bold">
+                    {instrument?.name}
+                  </h1>
+                  <p className="text-muted-foreground mt-1">
+                    {instrument?.trading_symbol} • {exchange} •{" "}
+                    {instrument?.segment}
+                  </p>
+                </div>
+                {instrument && (
+                  <div className="mt-1">
+                    <WatchlistButton
+                      stockData={{
+                        stockSymbol: instrument.trading_symbol,
+                        stockName: instrument.name,
+                        exchange: exchange,
+                        isin: instrument.isin || undefined,
+                      }}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Exchange Selector */}
@@ -960,7 +975,7 @@ export default function StockPage() {
                           <span className="text-muted-foreground text-sm">
                             High
                           </span>
-                          <span className="font-semibold text-chart-1">
+                          <span className="text-chart-1 font-semibold">
                             ₹
                             {Math.max(...chartData.map((d) => d.high)).toFixed(
                               2,
@@ -971,7 +986,7 @@ export default function StockPage() {
                           <span className="text-muted-foreground text-sm">
                             Low
                           </span>
-                          <span className="font-semibold text-destructive">
+                          <span className="text-destructive font-semibold">
                             ₹
                             {Math.min(...chartData.map((d) => d.low)).toFixed(
                               2,
@@ -1108,7 +1123,7 @@ export default function StockPage() {
                             <span className="text-muted-foreground text-sm">
                               High
                             </span>
-                            <span className="font-semibold text-chart-1">
+                            <span className="text-chart-1 font-semibold">
                               {formatCurrency(ohlcData.high)}
                             </span>
                           </div>
@@ -1116,7 +1131,7 @@ export default function StockPage() {
                             <span className="text-muted-foreground text-sm">
                               Low
                             </span>
-                            <span className="font-semibold text-destructive">
+                            <span className="text-destructive font-semibold">
                               {formatCurrency(ohlcData.low)}
                             </span>
                           </div>
@@ -1144,7 +1159,7 @@ export default function StockPage() {
                       <span className="text-muted-foreground text-sm">
                         Upper Circuit
                       </span>
-                      <span className="font-semibold text-chart-1">
+                      <span className="text-chart-1 font-semibold">
                         {formatCurrency(liveData.upper_circuit_limit)}
                       </span>
                     </div>
@@ -1152,7 +1167,7 @@ export default function StockPage() {
                       <span className="text-muted-foreground text-sm">
                         Lower Circuit
                       </span>
-                      <span className="font-semibold text-destructive">
+                      <span className="text-destructive font-semibold">
                         {formatCurrency(liveData.lower_circuit_limit)}
                       </span>
                     </div>
@@ -1185,7 +1200,7 @@ export default function StockPage() {
                       <span className="text-muted-foreground text-sm">
                         Bid Price
                       </span>
-                      <span className="font-semibold text-chart-1">
+                      <span className="text-chart-1 font-semibold">
                         {formatCurrency(liveData.bid_price)}
                       </span>
                     </div>
@@ -1193,7 +1208,7 @@ export default function StockPage() {
                       <span className="text-muted-foreground text-sm">
                         Ask Price
                       </span>
-                      <span className="font-semibold text-destructive">
+                      <span className="text-destructive font-semibold">
                         {formatCurrency(liveData.offer_price)}
                       </span>
                     </div>
@@ -1270,7 +1285,7 @@ export default function StockPage() {
                 <CardContent>
                   <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div>
-                      <h4 className="mb-3 text-sm font-semibold tracking-wide text-chart-1 uppercase">
+                      <h4 className="text-chart-1 mb-3 text-sm font-semibold tracking-wide uppercase">
                         Buy Orders
                       </h4>
                       <div className="space-y-2">
@@ -1284,7 +1299,7 @@ export default function StockPage() {
                             key={index}
                             className="grid grid-cols-3 gap-2 text-sm"
                           >
-                            <span className="font-medium text-chart-1">
+                            <span className="text-chart-1 font-medium">
                               {formatCurrency(order.price)}
                             </span>
                             <span className="text-center">
@@ -1302,7 +1317,7 @@ export default function StockPage() {
                       </div>
                     </div>
                     <div>
-                      <h4 className="mb-3 text-sm font-semibold tracking-wide text-destructive uppercase">
+                      <h4 className="text-destructive mb-3 text-sm font-semibold tracking-wide uppercase">
                         Sell Orders
                       </h4>
                       <div className="space-y-2">
@@ -1318,7 +1333,7 @@ export default function StockPage() {
                               key={index}
                               className="grid grid-cols-3 gap-2 text-sm"
                             >
-                              <span className="font-medium text-destructive">
+                              <span className="text-destructive font-medium">
                                 {formatCurrency(order.price)}
                               </span>
                               <span className="text-center">

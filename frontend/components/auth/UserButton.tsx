@@ -54,7 +54,7 @@ export default function UserButton({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Avatar className="cursor-pointer">
-                <AvatarImage src={`/api/avatar?url=${user.avatar}`} />
+                <AvatarImage src={user.avatar ?? undefined} />
                 <AvatarFallback>{initials}</AvatarFallback>
               </Avatar>
             </DropdownMenuTrigger>
@@ -124,7 +124,7 @@ export default function UserButton({
               )}
             >
               <Avatar className="cursor-pointer">
-                <AvatarImage src={`/api/avatar?url=${user.avatar}`} />
+                <AvatarImage src={user.avatar ?? undefined} />
                 <AvatarFallback>{initials}</AvatarFallback>
               </Avatar>
               <AnimatePresence>

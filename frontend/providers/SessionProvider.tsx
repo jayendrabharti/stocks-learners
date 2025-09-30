@@ -13,6 +13,7 @@ import {
   Dispatch,
 } from "react";
 import { toast } from "sonner";
+import useLocalState from "@/hooks/useLocalState";
 
 export interface SessionContextType {
   user: User | null;
@@ -33,35 +34,43 @@ const SessionContext = createContext<SessionContextType>({
 });
 
 export default function SessionProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<SessionContextType["user"]>(null);
+  // Use localStorage to persist user data
+  const [storedUser, setStoredUser] = useLocalState<User | null>("user", null);
+
+  const [user, setUser] = useState<SessionContextType["user"]>(storedUser);
   const [error, setError] = useState<string | null>(null);
-  const [status, setStatus] = useState<SessionContextType["status"]>("loading");
+
+  // Initialize status based on localStorage
+  const [status, setStatus] = useState<SessionContextType["status"]>(
+    storedUser ? "authenticated" : "loading",
+  );
 
   const router = useRouter();
 
   const fetchSession = async () => {
-    setUser(null);
-    setStatus("loading");
-    setError(null);
-
     try {
-      const user = await getUser();
-      if (user) {
-        setUser(user);
-        console.log("User fetched:", user);
-        setStatus("authenticated");
-        console.log("Session status: authenticated");
-      } else {
-        setUser(null);
-        console.log("User not found");
+      const fetchedUser = await getUser();
 
+      if (fetchedUser) {
+        // User is valid, update both local state and localStorage
+        setUser(fetchedUser);
+        setStoredUser(fetchedUser);
+        setStatus("authenticated");
+        console.log("User validated and synced:", fetchedUser);
+      } else {
+        // User session is invalid, clear everything
+        setUser(null);
+        setStoredUser(null);
         setStatus("unauthenticated");
-        console.log("Session status: unauthenticated");
+        console.log("User session invalid, cleared");
       }
+      setError(null);
     } catch (error) {
       console.error("Failed to fetch session:", error);
       setError("Failed to fetch session");
+      // On error, clear user data to be safe
       setUser(null);
+      setStoredUser(null);
       setStatus("unauthenticated");
     }
   };
@@ -70,6 +79,7 @@ export default function SessionProvider({ children }: { children: ReactNode }) {
     const { data } = await ApiClient.post("/auth/logout");
     if (data.success) {
       setUser(null);
+      setStoredUser(null);
       setError(null);
       setStatus("unauthenticated");
       toast.success("Signed out !!");
@@ -81,7 +91,20 @@ export default function SessionProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Custom setUser that also updates localStorage
+  const updateUser = (value: SetStateAction<User | null>) => {
+    const newUser = typeof value === "function" ? value(user) : value;
+    setUser(newUser);
+    setStoredUser(newUser);
+  };
+
   useEffect(() => {
+    // If we don't have a user from localStorage, set loading state
+    if (!storedUser) {
+      setStatus("loading");
+    }
+
+    // Always fetch session in background to validate
     fetchSession();
   }, []);
 
@@ -90,7 +113,7 @@ export default function SessionProvider({ children }: { children: ReactNode }) {
     status,
     error,
     refreshSession: fetchSession,
-    setUser,
+    setUser: updateUser,
     logOut,
   };
 

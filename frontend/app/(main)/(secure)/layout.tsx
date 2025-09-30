@@ -1,6 +1,6 @@
 import AuthGuard from "@/auth/AuthGuard";
 import Unauthenticated from "@/components/auth/Unauthenticated";
-import { StockSearch } from "@/components/trading";
+import { WatchlistProvider } from "@/providers/WatchlistProvider";
 import { ReactNode } from "react";
 
 export default async function MainLayout({
@@ -8,5 +8,9 @@ export default async function MainLayout({
 }: {
   children: ReactNode;
 }) {
-  return <AuthGuard fallback={<Unauthenticated />}>{children}</AuthGuard>;
+  return (
+    <AuthGuard fallback={<Unauthenticated />}>
+      <WatchlistProvider>{children}</WatchlistProvider>
+    </AuthGuard>
+  );
 }

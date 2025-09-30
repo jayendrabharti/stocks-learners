@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { StockSearch } from "../../../../components/trading/StockSearch";
+import { Watchlist } from "../../../../components/trading/Watchlist";
+import { WatchlistButton } from "../../../../components/trading/WatchlistButton";
 import {
   Card,
   CardContent,
@@ -85,14 +87,14 @@ function StockCard({ stock, type = "gainer", size = "md" }: StockCardProps) {
     "company" in stock ? stock.company.nseScriptCode : stock.nseScriptCode;
 
   return (
-    <Link href={`/stocks/${stockId}`}>
-      <Card
-        className={cn(
-          "group border-border/50 hover:border-border cursor-pointer transition-all duration-200 hover:shadow-lg",
-          size === "sm" ? "p-3" : "p-4",
-        )}
-      >
-        <CardContent className={size === "sm" ? "p-3" : "p-4"}>
+    <Card
+      className={cn(
+        "group border-border/50 hover:border-border transition-all duration-200 hover:shadow-lg",
+        size === "sm" ? "p-3" : "p-4",
+      )}
+    >
+      <CardContent className={size === "sm" ? "p-3" : "p-4"}>
+        <Link href={`/stocks/${stockId}`} className="block">
           <div className="flex items-center justify-between gap-3">
             <div className="flex min-w-0 flex-1 items-center gap-3">
               <div
@@ -140,46 +142,64 @@ function StockCard({ stock, type = "gainer", size = "md" }: StockCardProps) {
                 )}
               </div>
             </div>
-            <div className="flex-shrink-0 text-right">
-              <div
-                className={cn(
-                  "text-foreground font-semibold",
-                  size === "sm" ? "text-sm" : "text-base",
-                )}
-              >
-                ₹{price.toFixed(2)}
-              </div>
-              <div
-                className={cn(
-                  "flex items-center justify-end gap-1 font-medium",
-                  size === "sm" ? "text-xs" : "text-sm",
-                  isNeutral
-                    ? "text-muted-foreground"
-                    : isPositive
-                      ? "text-chart-1"
-                      : "text-destructive",
-                )}
-              >
-                {!isNeutral &&
-                  (isPositive ? (
-                    <TrendingUp className="h-3 w-3" />
-                  ) : (
-                    <TrendingDown className="h-3 w-3" />
-                  ))}
-                <span>
-                  {isPositive ? "+" : ""}
-                  {change.toFixed(2)}
-                </span>
-                <span>
-                  ({isPositive ? "+" : ""}
-                  {changePercent.toFixed(2)}%)
-                </span>
+            <div className="flex items-center gap-2">
+              <div className="flex-shrink-0 text-right">
+                <div
+                  className={cn(
+                    "text-foreground font-semibold",
+                    size === "sm" ? "text-sm" : "text-base",
+                  )}
+                >
+                  ₹{price.toFixed(2)}
+                </div>
+                <div
+                  className={cn(
+                    "flex items-center justify-end gap-1 font-medium",
+                    size === "sm" ? "text-xs" : "text-sm",
+                    isNeutral
+                      ? "text-muted-foreground"
+                      : isPositive
+                        ? "text-chart-1"
+                        : "text-destructive",
+                  )}
+                >
+                  {!isNeutral &&
+                    (isPositive ? (
+                      <TrendingUp className="h-3 w-3" />
+                    ) : (
+                      <TrendingDown className="h-3 w-3" />
+                    ))}
+                  <span>
+                    {isPositive ? "+" : ""}
+                    {change.toFixed(2)}
+                  </span>
+                  <span>
+                    ({isPositive ? "+" : ""}
+                    {changePercent.toFixed(2)}%)
+                  </span>
+                </div>
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
-    </Link>
+        </Link>
+
+        {/* Watchlist Button */}
+        <div className="mt-3 flex justify-end">
+          <WatchlistButton
+            stockData={{
+              stockSymbol: symbol,
+              stockName: companyName,
+              exchange: "NSE", // Default to NSE since most stocks are NSE listed
+              isin: "company" in stock ? stock.company.isin : stock.isin,
+            }}
+            variant="outline"
+            size="sm"
+            showText={true}
+            className="text-xs"
+          />
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -242,18 +262,6 @@ export default function StocksPage() {
 
   // Check if market is open
   const marketIsOpen = isMarketOpen(marketTiming);
-
-  // Sample indices data - you may want to fetch this from another API
-  const watchlistStocks = [
-    { symbol: "NIFTY 50", price: 19674.25, change: 156.8, changePercent: 0.8 },
-    { symbol: "SENSEX", price: 65953.48, change: 501.22, changePercent: 0.77 },
-    {
-      symbol: "BANKNIFTY",
-      price: 44267.85,
-      change: -89.15,
-      changePercent: -0.2,
-    },
-  ];
 
   return (
     <div className="grid grid-cols-1 gap-6 p-2 lg:grid-cols-3">
@@ -337,35 +345,25 @@ export default function StocksPage() {
             </div>
 
             <div className="border-border mt-6 border-t pt-6">
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                <Button
-                  variant="outline"
-                  className="hover:border-chart-1/30 hover:bg-chart-1/5 h-auto flex-col gap-2 p-4"
-                >
-                  <Plus className="text-chart-1 h-5 w-5" />
-                  <span className="text-chart-1 font-medium">Buy Stocks</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  className="hover:border-chart-2/30 hover:bg-chart-2/5 h-auto flex-col gap-2 p-4"
-                >
-                  <BarChart3 className="text-chart-2 h-5 w-5" />
-                  <span className="text-chart-2 font-medium">Portfolio</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  className="hover:border-chart-4/30 hover:bg-chart-4/5 h-auto flex-col gap-2 p-4"
-                >
-                  <Eye className="text-chart-4 h-5 w-5" />
-                  <span className="text-chart-4 font-medium">Watchlist</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  className="hover:border-chart-5/30 hover:bg-chart-5/5 h-auto flex-col gap-2 p-4"
-                >
-                  <Clock className="text-chart-5 h-5 w-5" />
-                  <span className="text-chart-5 font-medium">History</span>
-                </Button>
+              <div className="flex flex-row gap-2">
+                <Link href="/dashboard/portfolio" className="contents">
+                  <Button
+                    variant="outline"
+                    className="hover:border-chart-2/30 hover:bg-chart-2/5 h-auto flex-1 flex-col gap-2 p-4"
+                  >
+                    <BarChart3 className="text-chart-2 h-5 w-5" />
+                    <span className="text-chart-2 font-medium">Portfolio</span>
+                  </Button>
+                </Link>
+                <Link href="/dashboard/watchlist" className="contents">
+                  <Button
+                    variant="outline"
+                    className="hover:border-chart-4/30 hover:bg-chart-4/5 h-auto flex-1 flex-col gap-2 p-4"
+                  >
+                    <Eye className="text-chart-4 h-5 w-5" />
+                    <span className="text-chart-4 font-medium">Watchlist</span>
+                  </Button>
+                </Link>
               </div>
             </div>
           </CardContent>
@@ -562,50 +560,7 @@ export default function StocksPage() {
       {/* Right Column - Watchlist & Features */}
       <div className="space-y-6">
         {/* Watchlist */}
-        <div className="border-border bg-background rounded-2xl border shadow-lg">
-          <div className="border-border border-b p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <Star className="text-chart-5 mr-2 h-5 w-5" />
-                <h3 className="text-foreground text-lg font-bold">
-                  Market Indices
-                </h3>
-              </div>
-              <button className="text-chart-2 hover:text-chart-2/80 text-sm font-medium">
-                View All
-              </button>
-            </div>
-          </div>
-          <div className="space-y-4 p-6">
-            {watchlistStocks.map((stock, index) => (
-              <div
-                key={index}
-                className="bg-muted/30 hover:bg-muted/50 flex cursor-pointer items-center justify-between rounded-lg p-3 transition-colors"
-              >
-                <div>
-                  <p className="text-foreground font-semibold">
-                    {stock.symbol}
-                  </p>
-                  <p className="text-muted-foreground text-sm">
-                    ₹{stock.price.toFixed(2)}
-                  </p>
-                </div>
-                <div
-                  className={`text-right ${stock.change >= 0 ? "text-chart-1" : "text-destructive"}`}
-                >
-                  <p className="font-semibold">
-                    {stock.change >= 0 ? "+" : ""}
-                    {stock.change.toFixed(2)}
-                  </p>
-                  <p className="text-sm">
-                    {stock.changePercent >= 0 ? "+" : ""}
-                    {stock.changePercent.toFixed(2)}%
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <Watchlist maxItems={5} />
 
         {/* Coming Soon Features */}
         <div className="border-border from-muted/30 to-muted/50 rounded-2xl border bg-gradient-to-br shadow-lg">

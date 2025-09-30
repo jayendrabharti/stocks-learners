@@ -8,15 +8,13 @@ import { LoaderCircle, PencilIcon, UploadIcon, XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { convertBlobUrlToFile } from "@/utils/utils";
 import { useSession } from "@/providers/SessionProvider";
-import { uploadFile } from "@/utils/uploadFile";
-import ApiClient from "@/utils/ApiClient";
+import { ProfileApi } from "@/services/profileApi";
 
 async function getCroppedImg(
   image: HTMLImageElement,
   crop: PixelCrop
-): Promise<string> {
+): Promise<File> {
   const canvas = document.createElement("canvas");
   const scaleX = image.naturalWidth / image.width;
   const scaleY = image.naturalHeight / image.height;
@@ -37,11 +35,13 @@ async function getCroppedImg(
     crop.height
   );
 
-  return new Promise<string>((resolve, reject) => {
+  return new Promise<File>((resolve, reject) => {
     canvas.toBlob((blob) => {
       if (blob) {
-        const url = URL.createObjectURL(blob);
-        resolve(url);
+        const file = new File([blob], "profile-picture.png", {
+          type: "image/png",
+        });
+        resolve(file);
       } else {
         reject(new Error("Canvas is empty"));
       }
@@ -52,9 +52,7 @@ async function getCroppedImg(
 export default function ProfileImage({ user }: { user: User }) {
   const { setUser } = useSession();
 
-  const [imageUrl, setImageUrl] = useState<string | null>(
-    `/api/avatar?url=${user?.avatar}`
-  );
+  const [imageUrl, setImageUrl] = useState<string | null>(user?.avatar || null);
   const [src, setSrc] = useState<string | null>(null);
   const [crop, setCrop] = useState<Crop | undefined>(undefined);
   const [completedCrop, setCompletedCrop] = useState<PixelCrop | null>(null);
@@ -64,6 +62,18 @@ export default function ProfileImage({ user }: { user: User }) {
   const handleOnImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Validate file size (5MB limit)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("File size must be less than 5MB");
+        return;
+      }
+
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast.error("Only image files are allowed");
+        return;
+      }
+
       setSrc(URL.createObjectURL(file));
       setCrop(undefined);
       setCompletedCrop(null);
@@ -79,132 +89,146 @@ export default function ProfileImage({ user }: { user: User }) {
     startUploading(async () => {
       try {
         if (!completedCrop) {
-          toast.error("Crop the image too upload!!", {
-            style: { background: "#ef4444", color: "#fff" }, // Tailwind red-500
-          });
+          toast.error("Please crop the image before uploading!");
+          return;
         }
+
         if (imgRef.current && completedCrop) {
-          const url = await getCroppedImg(imgRef.current, completedCrop);
-          const imageFile = await convertBlobUrlToFile(url);
-          const { data, errorMessage } = await uploadFile({
-            file: imageFile,
-            folder: "avatars",
-          });
-          if (data) {
-            const newAvatarUrl = `/api/avatar?url=${data.fileUrl}`;
-            setImageUrl(newAvatarUrl);
-            await ApiClient.post("/auth/user", { avatar: data.fileUrl });
-            toast.success("Updated Profile Image successfully !!");
+          const croppedFile = await getCroppedImg(imgRef.current, completedCrop);
+          
+          const response = await ProfileApi.uploadProfilePicture(croppedFile);
+          
+          if (response.success && response.data) {
+            setImageUrl(response.data.avatarUrl);
+            toast.success("Profile picture updated successfully!");
+            
+            // Update user in session
             setUser((prev) =>
-              prev ? { ...prev, avatar: data.fileUrl } : prev
+              prev ? { ...prev, avatar: response.data!.avatarUrl } : prev
             );
+            
             setSrc(null);
-          } else if (errorMessage) {
-            toast.error(errorMessage);
-            return;
+            setCompletedCrop(null);
           }
         }
       } catch (error) {
         toast.error(
-          `Error uploading image: ${
-            error instanceof Error ? error.message : "Unknown error"
-          }`
+          error instanceof Error ? error.message : "Failed to upload image"
         );
       }
     });
+  };
+
+  const handleCancel = () => {
+    setSrc(null);
+    setImageUrl(user?.avatar || null);
+    setCompletedCrop(null);
   };
 
   return (
     <div className="flex flex-col">
       <div className="mx-auto">
         {!imageUrl && src ? (
-          <div className="flex flex-col items-center gap-2">
-            <span>(Crop and Upload)</span>
+          <div className="flex flex-col items-center gap-4">
+            <span className="text-sm text-muted-foreground">
+              Crop your image (square aspect ratio)
+            </span>
             <ReactCrop
               crop={crop}
               onChange={setCrop}
               onComplete={setCompletedCrop}
               aspect={1}
               circularCrop
+              className="max-w-md"
             >
               <Image
                 ref={imgRef}
                 src={src}
                 alt="profile-image-cropper"
-                width={1000}
-                height={1000}
+                width={400}
+                height={400}
                 onLoad={onImageLoad}
                 style={{ maxWidth: "100%" }}
               />
             </ReactCrop>
             <div className="flex flex-row gap-2">
-              <Button variant="outline" onClick={handleUpload}>
+              <Button 
+                variant="default" 
+                onClick={handleUpload}
+                disabled={uploading || !completedCrop}
+              >
                 {uploading ? (
-                  <LoaderCircle className="animate-spin" />
+                  <LoaderCircle className="animate-spin mr-2 h-4 w-4" />
                 ) : (
-                  <UploadIcon />
+                  <UploadIcon className="mr-2 h-4 w-4" />
                 )}
                 {uploading ? "Uploading..." : "Upload"}
               </Button>
               <Button
-                variant="destructive"
-                onClick={() => {
-                  setSrc(null);
-                  setImageUrl(user?.avatar || null);
-                }}
+                variant="outline"
+                onClick={handleCancel}
+                disabled={uploading}
               >
-                <XIcon />
+                <XIcon className="mr-2 h-4 w-4" />
                 Cancel
               </Button>
             </div>
           </div>
         ) : imageUrl ? (
           <>
-            <div className="relative flex size-54 flex-col items-center justify-center overflow-hidden rounded-2xl">
+            <div className="relative flex w-48 h-48 flex-col items-center justify-center overflow-hidden rounded-full border-4 border-muted">
               <Image
                 src={imageUrl}
                 alt="profile-image"
-                width={500}
-                height={500}
+                width={200}
+                height={200}
+                className="object-cover w-full h-full"
               />
             </div>
             <Button
-              variant={"outline"}
+              variant="outline"
               onClick={() => setImageUrl(null)}
-              className="mx-auto mt-2 w-full"
+              className="mx-auto mt-4 w-full"
+              disabled={uploading}
             >
-              <PencilIcon />
-              Update
+              <PencilIcon className="mr-2 h-4 w-4" />
+              Change Picture
             </Button>
           </>
         ) : (
           <>
             <div
               className={cn(
-                "relative flex flex-col items-center justify-center overflow-hidden rounded-xl outline-4 outline-[--border] outline-dashed",
-                "bg-card aspect-square max-w-xs"
+                "relative flex flex-col items-center justify-center overflow-hidden rounded-xl outline-2 outline-dashed outline-muted-foreground/25 hover:outline-muted-foreground/50 transition-colors cursor-pointer",
+                "bg-muted/50 aspect-square w-48 h-48"
               )}
             >
               <input
                 type="file"
                 name="image"
+                accept="image/*"
                 onChange={handleOnImageChange}
-                className={cn("absolute h-full w-full opacity-0")}
+                className="absolute h-full w-full opacity-0 cursor-pointer"
+                disabled={uploading}
               />
-              <UploadIcon className="m-4 size-16 text-[--muted-foreground]" />
-              <span className="mx-4 mb-4 text-lg font-bold text-[--foreground]">
-                Upload Profile Image
+              <UploadIcon className="mb-2 h-12 w-12 text-muted-foreground" />
+              <span className="text-sm font-medium text-muted-foreground text-center px-4">
+                Click to upload profile picture
+              </span>
+              <span className="text-xs text-muted-foreground mt-1">
+                Max 5MB, PNG/JPG
               </span>
             </div>
-            <Button
-              variant="destructive"
-              onClick={() => setImageUrl(`/api/avatar?url=${user?.avatar}`)}
-              disabled={!user?.avatar}
-              className="mx-auto mt-2 w-full"
-            >
-              <XIcon />
-              Cancel
-            </Button>
+            {user?.avatar && (
+              <Button
+                variant="ghost"
+                onClick={() => setImageUrl(user.avatar)}
+                className="mx-auto mt-4 w-full text-muted-foreground"
+              >
+                <XIcon className="mr-2 h-4 w-4" />
+                Cancel
+              </Button>
+            )}
           </>
         )}
       </div>

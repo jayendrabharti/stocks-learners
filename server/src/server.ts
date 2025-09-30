@@ -5,6 +5,8 @@ import cookieParser from "cookie-parser";
 import authRouter from "./routes/auth.routes.js";
 import instrumentsRouter from "./routes/instruments.routes.js";
 import marketRouter from "./routes/market.routes.js";
+import watchlistRouter from "./routes/watchlist.routes.js";
+import profileRouter from "./routes/profile.routes.js";
 
 dotenv.config();
 
@@ -39,6 +41,8 @@ app.get("/health", (_req, res) => {
 app.use("/auth", authRouter);
 app.use("/instruments", instrumentsRouter);
 app.use("/market", marketRouter);
+app.use("/watchlist", watchlistRouter);
+app.use("/profile", profileRouter);
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Trading Server is running on port ${PORT}`);

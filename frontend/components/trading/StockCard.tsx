@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { TrendingUp, TrendingDown, Plus, Minus, Eye } from "lucide-react";
+import { TrendingUp, TrendingDown, Plus, Minus } from "lucide-react";
 import { InstrumentSearch, StockPrice } from "../../types/trading";
 import { stockApiService } from "../../services/stockApi";
+import { WatchlistButton } from "./WatchlistButton";
 import {
   formatCurrency,
   formatPercentage,
@@ -178,12 +179,18 @@ export const StockCard: React.FC<StockCardProps> = ({
             Sell
           </button>
 
-          <button
-            onClick={() => onAddToWatchlist?.(stock)}
-            className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
-          >
-            <Eye className="h-3 w-3" />
-          </button>
+          <WatchlistButton
+            stockData={{
+              stockSymbol: stock.symbol || "",
+              stockName: stock.name || "",
+              exchange: stock.exchange || "",
+              isin: stock.isin,
+            }}
+            variant="outline"
+            size="sm"
+            showText={false}
+            className="h-8 w-8 p-0"
+          />
         </div>
       )}
     </div>
