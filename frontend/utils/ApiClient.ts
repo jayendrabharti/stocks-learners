@@ -37,7 +37,7 @@ ApiClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
     const isAuthEndpoint = authEndpoints.some((endpoint) =>
-      originalRequest.url.includes(endpoint)
+      originalRequest.url.includes(endpoint),
     );
 
     if (
@@ -69,7 +69,7 @@ ApiClient.interceptors.response.use(
       }
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 export default ApiClient;

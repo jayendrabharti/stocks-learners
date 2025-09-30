@@ -249,6 +249,122 @@ export const getInstrumentLiveData = async (
   }
 };
 
+export const getBatchInstrumentLiveData = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  try {
+    const { instruments } = req.body;
+
+    // Validate input
+    if (
+      !instruments ||
+      !Array.isArray(instruments) ||
+      instruments.length === 0
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid request: 'instruments' must be a non-empty array",
+      });
+    }
+
+    // Validate each instrument object
+    for (const instrument of instruments) {
+      if (!instrument.trading_symbol || !instrument.exchange) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Invalid instrument: must have 'trading_symbol' and 'exchange'",
+        });
+      }
+
+      if (instrument.exchange !== "NSE" && instrument.exchange !== "BSE") {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid exchange: ${instrument.exchange}. Must be NSE or BSE`,
+        });
+      }
+    }
+
+    // Limit batch size to prevent overload
+    if (instruments.length > 50) {
+      return res.status(400).json({
+        success: false,
+        message: "Batch size too large. Maximum 50 instruments allowed",
+      });
+    }
+
+    const access_token = await getGrowwAccessToken();
+    const results: any[] = [];
+
+    // Fetch data for each instrument with small delays to avoid rate limits
+    for (let i = 0; i < instruments.length; i++) {
+      const instrument = instruments[i];
+
+      try {
+        // Add small delay between requests (except for first one)
+        if (i > 0) {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+
+        const quoteUrl = `https://api.groww.in/v1/live-data/quote?exchange=${encodeURIComponent(
+          instrument.exchange
+        )}&segment=CASH&trading_symbol=${encodeURIComponent(
+          instrument.trading_symbol
+        )}`;
+
+        const quoteResponse = await fetch(quoteUrl, {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${access_token}`,
+            "X-API-VERSION": "1.0",
+          },
+        });
+
+        if (quoteResponse.ok) {
+          const quoteData = await quoteResponse.json();
+          results.push({
+            trading_symbol: instrument.trading_symbol,
+            exchange: instrument.exchange,
+            success: true,
+            data: quoteData,
+          });
+        } else {
+          results.push({
+            trading_symbol: instrument.trading_symbol,
+            exchange: instrument.exchange,
+            success: false,
+            error: `Failed to fetch: ${quoteResponse.statusText}`,
+          });
+        }
+      } catch (error) {
+        results.push({
+          trading_symbol: instrument.trading_symbol,
+          exchange: instrument.exchange,
+          success: false,
+          error: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
+    }
+
+    const responseData = {
+      success: true,
+      data: results,
+      total_requested: instruments.length,
+      total_successful: results.filter((r) => r.success).length,
+    };
+
+    return res.status(200).json(responseData);
+  } catch (error) {
+    console.error("Error getting batch instrument live data:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to get batch instrument live data",
+    });
+  }
+};
+
 export const getInstrumentHistoricalData = async (
   req: Request,
   res: Response

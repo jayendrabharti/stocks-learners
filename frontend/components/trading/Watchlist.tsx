@@ -2,7 +2,10 @@
 
 import React from "react";
 import Link from "next/link";
-import { useWatchlist } from "../../providers/WatchlistProvider";
+import {
+  useWatchlist,
+  WatchlistItemWithLiveData,
+} from "../../providers/WatchlistProvider";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
@@ -33,9 +36,11 @@ export const Watchlist: React.FC<WatchlistProps> = ({
     watchlist,
     loading,
     error,
+    dataLoading,
     removeFromWatchlist,
     clearWatchlist,
     refreshWatchlist,
+    refreshLiveData,
     watchlistCount,
   } = useWatchlist();
 
@@ -153,16 +158,31 @@ export const Watchlist: React.FC<WatchlistProps> = ({
               >
                 {watchlistCount}
               </Badge>
+              {dataLoading && (
+                <Badge variant="outline" className="ml-2 text-xs">
+                  <RefreshCw className="mr-1 h-3 w-3 animate-spin" />
+                  Updating data
+                </Badge>
+              )}
             </CardTitle>
             <div className="flex items-center space-x-2">
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={refreshWatchlist}
+                onClick={() => {
+                  refreshWatchlist();
+                  refreshLiveData();
+                }}
+                disabled={loading || dataLoading}
                 className="h-8 w-8 p-0"
-                title="Refresh watchlist"
+                title="Refresh watchlist and live data"
               >
-                <RefreshCw className="h-4 w-4" />
+                <RefreshCw
+                  className={cn(
+                    "h-4 w-4",
+                    (loading || dataLoading) && "animate-spin",
+                  )}
+                />
               </Button>
               {!isCompact && watchlist.length > 0 && (
                 <Button
@@ -205,7 +225,7 @@ export const Watchlist: React.FC<WatchlistProps> = ({
 };
 
 interface WatchlistItemProps {
-  item: any;
+  item: WatchlistItemWithLiveData;
   onRemove: (stockSymbol: string, exchange: string) => Promise<void>;
   compact?: boolean;
 }
@@ -217,14 +237,23 @@ const WatchlistItem: React.FC<WatchlistItemProps> = ({
 }) => {
   const [removing, setRemoving] = React.useState(false);
 
-  // For now, we'll use mock price data since we don't have live price integration yet
-  // In a real implementation, you would fetch current market prices for each stock
-  const mockPrice = Math.random() * 1000 + 100;
-  const mockChange = (Math.random() - 0.5) * 20;
-  const mockChangePercent = (mockChange / mockPrice) * 100;
+  // Helper function to format currency
+  const formatCurrency = (value: number): string => {
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+    }).format(value);
+  };
 
-  const isPositive = mockChange >= 0;
-  const isNeutral = mockChange === 0;
+  // Extract live data or use defaults
+  const { liveData, dataLoading, dataError } = item;
+  const lastPrice = liveData?.last_price || 0;
+  const dayChange = liveData?.day_change || 0;
+  const dayChangePerc = liveData?.day_change_perc || 0;
+
+  const isPositive = dayChange > 0;
+  const isNegative = dayChange < 0;
+  const isNeutral = dayChange === 0;
 
   const handleRemove = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -282,7 +311,7 @@ const WatchlistItem: React.FC<WatchlistItemProps> = ({
                   compact && "text-sm",
                 )}
               >
-                {item.stockSymbol}
+                {item.stockName}
               </p>
               <Badge variant="outline" className="text-xs">
                 {item.exchange}
@@ -294,7 +323,7 @@ const WatchlistItem: React.FC<WatchlistItemProps> = ({
                 compact ? "text-xs" : "text-sm",
               )}
             >
-              {item.stockName}
+              {item.stockSymbol}
             </p>
             <p
               className={cn(
@@ -302,49 +331,67 @@ const WatchlistItem: React.FC<WatchlistItemProps> = ({
                 compact ? "text-xs" : "text-sm",
               )}
             >
-              ₹{mockPrice.toFixed(2)}
+              {lastPrice > 0 ? formatCurrency(lastPrice) : "No price data"}
             </p>
           </div>
         </div>
 
         <div className="flex items-center space-x-2">
           <div className="text-right">
-            <div className="flex items-center space-x-1">
-              {isPositive ? (
-                <TrendingUp className="text-chart-1 h-3 w-3" />
-              ) : isNeutral ? (
-                <Minus className="text-muted-foreground h-3 w-3" />
-              ) : (
-                <TrendingDown className="text-destructive h-3 w-3" />
-              )}
-              <p
-                className={cn(
-                  "font-semibold",
-                  compact ? "text-xs" : "text-sm",
-                  isPositive
-                    ? "text-chart-1"
-                    : isNeutral
-                      ? "text-muted-foreground"
-                      : "text-destructive",
-                )}
-              >
-                {isPositive ? "+" : ""}
-                {mockChange.toFixed(2)}
-              </p>
-            </div>
-            <p
-              className={cn(
-                compact ? "text-xs" : "text-sm",
-                isPositive
-                  ? "text-chart-1"
-                  : isNeutral
-                    ? "text-muted-foreground"
-                    : "text-destructive",
-              )}
-            >
-              {isPositive ? "+" : ""}
-              {mockChangePercent.toFixed(2)}%
-            </p>
+            {dataLoading ? (
+              <div className="space-y-1">
+                <div className="bg-muted h-4 w-16 animate-pulse rounded"></div>
+                <div className="bg-muted h-3 w-12 animate-pulse rounded"></div>
+              </div>
+            ) : dataError ? (
+              <div className="text-center">
+                <p className="text-destructive text-xs">Failed to load</p>
+              </div>
+            ) : lastPrice > 0 ? (
+              <>
+                <div className="flex items-center justify-end space-x-1">
+                  {isPositive ? (
+                    <TrendingUp className="text-chart-1 h-3 w-3" />
+                  ) : isNeutral ? (
+                    <Minus className="text-muted-foreground h-3 w-3" />
+                  ) : (
+                    <TrendingDown className="text-destructive h-3 w-3" />
+                  )}
+                  <p
+                    className={cn(
+                      "font-semibold",
+                      compact ? "text-xs" : "text-sm",
+                      isPositive
+                        ? "text-chart-1"
+                        : isNeutral
+                          ? "text-muted-foreground"
+                          : "text-destructive",
+                    )}
+                  >
+                    {isPositive ? "+" : ""}
+                    {formatCurrency(dayChange)}
+                  </p>
+                </div>
+                <p
+                  className={cn(
+                    "text-right",
+                    compact ? "text-xs" : "text-sm",
+                    isPositive
+                      ? "text-chart-1"
+                      : isNeutral
+                        ? "text-muted-foreground"
+                        : "text-destructive",
+                  )}
+                >
+                  {isPositive ? "+" : ""}
+                  {dayChangePerc.toFixed(2)}%
+                </p>
+              </>
+            ) : (
+              <div className="text-center">
+                <p className="text-muted-foreground text-xs">No data</p>
+              </div>
+            )}
           </div>
 
           <Button

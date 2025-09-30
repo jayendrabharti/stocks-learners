@@ -56,7 +56,6 @@ export default function SessionProvider({ children }: { children: ReactNode }) {
         setUser(fetchedUser);
         setStoredUser(fetchedUser);
         setStatus("authenticated");
-        console.log("User validated and synced:", fetchedUser);
       } else {
         // User session is invalid, clear everything
         setUser(null);

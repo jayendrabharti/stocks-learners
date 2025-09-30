@@ -16,10 +16,13 @@ const PORT = Number(process.env.PORT) || 8080;
 
 app.use(
   cors({
-    origin: (origin, callback) => {
-      if (!origin) return callback(null, true);
-      return callback(null, origin);
-    },
+    origin:
+      process.env.NODE_ENV === "production" && process.env.CLIENT_BASE_URL
+        ? process.env.CLIENT_BASE_URL
+        : (origin, callback) => {
+            if (!origin) return callback(null, true);
+            return callback(null, origin);
+          },
     credentials: true,
   })
 );
