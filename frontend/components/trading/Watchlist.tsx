@@ -16,6 +16,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { cn } from "../../lib/utils";
+import { getStockLogoUrl, getStockInitials } from "../../lib/stockUtils";
 
 interface WatchlistProps {
   showHeader?: boolean;
@@ -240,43 +241,70 @@ const WatchlistItem: React.FC<WatchlistItemProps> = ({
   };
 
   return (
-    <Link href={`/stocks/${item.stockSymbol}`}>
+    <Link href={`/stocks/${item.stockSymbol}?exchange=${item.exchange}`}>
       <div
         className={cn(
           "bg-muted/30 hover:bg-muted/50 group flex cursor-pointer items-center justify-between rounded-lg p-3 transition-colors",
           compact && "p-2",
         )}
       >
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center space-x-2">
+        <div className="flex min-w-0 flex-1 items-center space-x-3">
+          {/* Stock Logo */}
+          <div
+            className={cn("flex-shrink-0", compact ? "h-8 w-8" : "h-10 w-10")}
+          >
+            <img
+              src={getStockLogoUrl(item.stockSymbol)}
+              alt={`${item.stockName} logo`}
+              className="h-full w-full rounded-full bg-gray-100 object-cover"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.style.display = "none";
+                const fallback = target.nextElementSibling as HTMLDivElement;
+                if (fallback) {
+                  fallback.style.display = "flex";
+                }
+              }}
+            />
+            <div
+              className="h-full w-full items-center justify-center rounded-full bg-blue-100 text-xs font-medium text-blue-800"
+              style={{ display: "none" }}
+            >
+              {getStockInitials(item.stockSymbol)}
+            </div>
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center space-x-2">
+              <p
+                className={cn(
+                  "text-foreground font-semibold",
+                  compact && "text-sm",
+                )}
+              >
+                {item.stockSymbol}
+              </p>
+              <Badge variant="outline" className="text-xs">
+                {item.exchange}
+              </Badge>
+            </div>
             <p
               className={cn(
-                "text-foreground font-semibold",
-                compact && "text-sm",
+                "text-muted-foreground truncate",
+                compact ? "text-xs" : "text-sm",
               )}
             >
-              {item.stockSymbol}
+              {item.stockName}
             </p>
-            <Badge variant="outline" className="text-xs">
-              {item.exchange}
-            </Badge>
+            <p
+              className={cn(
+                "text-muted-foreground",
+                compact ? "text-xs" : "text-sm",
+              )}
+            >
+              ₹{mockPrice.toFixed(2)}
+            </p>
           </div>
-          <p
-            className={cn(
-              "text-muted-foreground truncate",
-              compact ? "text-xs" : "text-sm",
-            )}
-          >
-            {item.stockName}
-          </p>
-          <p
-            className={cn(
-              "text-muted-foreground",
-              compact ? "text-xs" : "text-sm",
-            )}
-          >
-            ₹{mockPrice.toFixed(2)}
-          </p>
         </div>
 
         <div className="flex items-center space-x-2">

@@ -279,7 +279,7 @@ export default function VolumeShockersPage() {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-chart-1">
+            <div className="text-chart-1 text-2xl font-bold">
               {loading ? "..." : gainers.length}
             </div>
             <div className="text-muted-foreground text-sm">Gainers</div>
@@ -287,7 +287,7 @@ export default function VolumeShockersPage() {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-destructive">
+            <div className="text-destructive text-2xl font-bold">
               {loading ? "..." : losers.length}
             </div>
             <div className="text-muted-foreground text-sm">Losers</div>

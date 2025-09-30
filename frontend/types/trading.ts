@@ -50,7 +50,8 @@ export interface StockQuote {
 }
 
 export interface InstrumentSearch {
-  symbol: string;
+  symbol: string; // Display name/stock name
+  tradingSymbol: string; // Actual trading symbol for API calls
   name: string;
   exchange: string;
   instrumentType: string;
@@ -96,7 +97,7 @@ export interface WalletData {
 }
 
 export interface BuyStockRequest {
-  stockSymbol: string;
+  stockSymbol: string; // This should be the trading symbol, not the display name
   stockName: string;
   exchange: string;
   quantity: number;

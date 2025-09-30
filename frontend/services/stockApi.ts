@@ -77,11 +77,12 @@ export class StockApiService {
           return true;
         })
         .map((item: any) => ({
-          symbol:
-            item.symbol ||
+          symbol: item.title || item.symbol || "N/A", // Display name
+          tradingSymbol:
             item.nse_scrip_code ||
             item.bse_scrip_code ||
-            item.id,
+            item.symbol ||
+            item.id, // Trading symbol for API calls
           name: item.title || "N/A",
           exchange:
             item.exchange ||
@@ -126,11 +127,15 @@ export class StockApiService {
         limit: 10,
       });
 
-      // Find exact match by symbol
+      // Find exact match by tradingSymbol first, then fall back to symbol
       const exactMatch = searchResponse.data.find(
         (item) =>
+          item.tradingSymbol === symbol ||
+          item.tradingSymbol === symbol.toUpperCase() ||
           item.symbol === symbol ||
           item.symbol === symbol.toUpperCase() ||
+          (item.tradingSymbol &&
+            item.tradingSymbol.toLowerCase() === symbol.toLowerCase()) ||
           (item.symbol && item.symbol.toLowerCase() === symbol.toLowerCase()),
       );
 

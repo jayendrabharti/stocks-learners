@@ -1,7 +1,7 @@
 "use client";
 
 import ApiClient from "@/utils/ApiClient";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getStockLogoUrl, getStockInitials } from "@/lib/stockUtils";
 import {
   ChartContainer,
   ChartTooltip,
@@ -131,6 +132,7 @@ const chartConfig = {
 
 export default function StockPage() {
   const { stockId } = useParams();
+  const searchParams = useSearchParams();
   const [instrument, setInstrument] = useState<Instrument | null>(null);
   const [liveData, setLiveData] = useState<LiveData | null>(null);
   const [historicalData, setHistoricalData] = useState<HistoricalData | null>(
@@ -147,6 +149,14 @@ export default function StockPage() {
     useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  // Read exchange from URL parameters and set it in state
+  useEffect(() => {
+    const exchangeParam = searchParams.get("exchange");
+    if (exchangeParam && (exchangeParam === "NSE" || exchangeParam === "BSE")) {
+      setExchange(exchangeParam);
+    }
+  }, [searchParams]);
 
   // Trading form state
   const [orderSide, setOrderSide] = useState<"BUY" | "SELL">("BUY");
@@ -582,6 +592,29 @@ export default function StockPage() {
             {/* Header Section */}
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="flex items-start gap-4">
+                {instrument && (
+                  <img
+                    src={getStockLogoUrl(instrument.trading_symbol)}
+                    alt={`${instrument.name} logo`}
+                    className="h-12 w-12 flex-shrink-0 rounded-lg object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = "none";
+                      // Show initials fallback
+                      const fallback =
+                        target.nextElementSibling as HTMLDivElement;
+                      if (fallback) fallback.style.display = "flex";
+                    }}
+                  />
+                )}
+                {instrument && (
+                  <div
+                    className="bg-primary/10 text-primary flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg text-sm font-semibold"
+                    style={{ display: "none" }}
+                  >
+                    {getStockInitials(instrument.name)}
+                  </div>
+                )}
                 <div>
                   <h1 className="text-primary text-3xl font-bold">
                     {instrument?.name}
@@ -595,7 +628,7 @@ export default function StockPage() {
                   <div className="mt-1">
                     <WatchlistButton
                       stockData={{
-                        stockSymbol: instrument.trading_symbol,
+                        stockSymbol: stockId as string,
                         stockName: instrument.name,
                         exchange: exchange,
                         isin: instrument.isin || undefined,

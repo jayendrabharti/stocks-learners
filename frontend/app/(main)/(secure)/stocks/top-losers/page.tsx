@@ -87,7 +87,7 @@ function StockCard({ stock, rank }: StockCardProps) {
                   maximumFractionDigits: 2,
                 })}
               </div>
-              <div className="flex items-center justify-end gap-1 text-sm font-medium text-destructive">
+              <div className="text-destructive flex items-center justify-end gap-1 text-sm font-medium">
                 <TrendingDown className="h-4 w-4" />
                 <span>₹{change.toFixed(2)}</span>
                 <span>({changePercent.toFixed(2)}%)</span>
@@ -155,8 +155,8 @@ export default function TopLosersPage() {
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-destructive/10 p-3">
-              <TrendingDown className="h-6 w-6 text-destructive" />
+            <div className="bg-destructive/10 rounded-xl p-3">
+              <TrendingDown className="text-destructive h-6 w-6" />
             </div>
             <div>
               <h1 className="text-foreground text-2xl font-bold">Top Losers</h1>
@@ -231,7 +231,7 @@ export default function TopLosersPage() {
       <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-destructive">
+            <div className="text-destructive text-2xl font-bold">
               {loading ? "..." : stocks.length}
             </div>
             <div className="text-muted-foreground text-sm">Total Losers</div>
@@ -239,7 +239,7 @@ export default function TopLosersPage() {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-destructive">
+            <div className="text-destructive text-2xl font-bold">
               {loading
                 ? "..."
                 : stocks.length > 0
@@ -251,7 +251,7 @@ export default function TopLosersPage() {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-destructive">
+            <div className="text-destructive text-2xl font-bold">
               {loading
                 ? "..."
                 : stocks.length > 0

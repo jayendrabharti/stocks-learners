@@ -68,7 +68,7 @@ function StockCard({ stock, type = "gainer", size = "md" }: StockCardProps) {
     price = stock.stats.ltp;
     symbol = stock.company.companyShortName;
     companyName = stock.company.companyName;
-    logo = stock.company.imageUrl;
+    logo = stock.company.imageUrl; // Keep original API data
   } else {
     // Stock type
     changePercent = calculateChangePercent(stock.ltp, stock.close);
@@ -76,7 +76,7 @@ function StockCard({ stock, type = "gainer", size = "md" }: StockCardProps) {
     price = stock.ltp;
     symbol = stock.companyShortName || stock.nseScriptCode;
     companyName = stock.companyName;
-    logo = stock.logoUrl;
+    logo = stock.logoUrl; // Keep original API data
   }
 
   const isPositive = change >= 0;
@@ -187,7 +187,7 @@ function StockCard({ stock, type = "gainer", size = "md" }: StockCardProps) {
         <div className="mt-3 flex justify-end">
           <WatchlistButton
             stockData={{
-              stockSymbol: symbol,
+              stockSymbol: stockId,
               stockName: companyName,
               exchange: "NSE", // Default to NSE since most stocks are NSE listed
               isin: "company" in stock ? stock.company.isin : stock.isin,

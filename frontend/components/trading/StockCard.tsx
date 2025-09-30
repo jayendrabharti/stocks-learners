@@ -11,6 +11,7 @@ import {
   getChangeColor,
   getChangeBgColor,
 } from "../../lib/tradingUtils";
+import { getStockLogoUrl, getStockInitials } from "../../lib/stockUtils";
 
 interface StockCardProps {
   stock: InstrumentSearch;
@@ -35,19 +36,19 @@ export const StockCard: React.FC<StockCardProps> = ({
 
   // Fetch live price when component mounts (only if showDetails is true)
   useEffect(() => {
-    if (showDetails && stock.symbol && stock.exchange) {
+    if (showDetails && stock.tradingSymbol && stock.exchange) {
       fetchLivePrice();
     }
-  }, [stock.symbol, stock.exchange, showDetails]);
+  }, [stock.tradingSymbol, stock.exchange, showDetails]);
 
   const fetchLivePrice = async () => {
     try {
-      if (!stock.symbol || !stock.exchange) return;
+      if (!stock.tradingSymbol || !stock.exchange) return;
 
       setLoading(true);
       setError(null);
       const price = await stockApiService.getLivePrice(
-        stock.symbol,
+        stock.tradingSymbol,
         stock.exchange,
       );
       setLivePrice(price);
@@ -57,11 +58,6 @@ export const StockCard: React.FC<StockCardProps> = ({
     } finally {
       setLoading(false);
     }
-  };
-
-  const getCompanyLogoUrl = (symbol: string) => {
-    // Using Groww's logo API (similar to how they display logos)
-    return `https://assets-netstorage.groww.in/stock-assets/logos/${symbol}.png`;
   };
 
   const getExchangeBadgeColor = (exchange: string) => {
@@ -81,7 +77,7 @@ export const StockCard: React.FC<StockCardProps> = ({
         {/* Company Logo */}
         <div className="flex-shrink-0">
           <img
-            src={getCompanyLogoUrl(stock.symbol || "")}
+            src={getStockLogoUrl(stock.tradingSymbol || "")}
             alt={`${stock.name || "Company"} logo`}
             className="h-10 w-10 rounded-full bg-gray-100 object-cover"
             onError={(e) => {
@@ -99,7 +95,7 @@ export const StockCard: React.FC<StockCardProps> = ({
             className="h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-sm font-medium text-blue-800"
             style={{ display: "none" }}
           >
-            {stock.symbol ? stock.symbol.substring(0, 2) : "??"}
+            {getStockInitials(stock.tradingSymbol || "")}
           </div>
         </div>
 
@@ -181,7 +177,7 @@ export const StockCard: React.FC<StockCardProps> = ({
 
           <WatchlistButton
             stockData={{
-              stockSymbol: stock.symbol || "",
+              stockSymbol: stock.tradingSymbol,
               stockName: stock.name || "",
               exchange: stock.exchange || "",
               isin: stock.isin,

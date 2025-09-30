@@ -32,8 +32,8 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
   const router = useRouter();
 
   const handleStockClick = (stock: InstrumentSearch) => {
-    // Navigate directly to stock page using nseScriptCode
-    const stockId = stock.symbol; // Using symbol as it contains the nseScriptCode
+    // Navigate directly to stock page using tradingSymbol (not the display name)
+    const stockId = stock.tradingSymbol; // Using tradingSymbol for proper API calls
     router.push(`/stocks/${stockId}`);
   };
   if (loading && results.length === 0) {
@@ -81,7 +81,7 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
       <div className="divide-y divide-gray-100">
         {results.map((stock, index) => (
           <div
-            key={`${stock.symbol}-${stock.exchange}-${index}`}
+            key={`${stock.tradingSymbol}-${stock.exchange}-${index}`}
             className="cursor-pointer transition-colors hover:bg-gray-50"
             onClick={() => handleStockClick(stock)}
           >
