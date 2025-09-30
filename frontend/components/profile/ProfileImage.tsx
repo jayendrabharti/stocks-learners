@@ -13,7 +13,7 @@ import { ProfileApi } from "@/services/profileApi";
 
 async function getCroppedImg(
   image: HTMLImageElement,
-  crop: PixelCrop
+  crop: PixelCrop,
 ): Promise<File> {
   const canvas = document.createElement("canvas");
   const scaleX = image.naturalWidth / image.width;
@@ -32,7 +32,7 @@ async function getCroppedImg(
     0,
     0,
     crop.width,
-    crop.height
+    crop.height,
   );
 
   return new Promise<File>((resolve, reject) => {
@@ -69,7 +69,7 @@ export default function ProfileImage({ user }: { user: User }) {
       }
 
       // Validate file type
-      if (!file.type.startsWith('image/')) {
+      if (!file.type.startsWith("image/")) {
         toast.error("Only image files are allowed");
         return;
       }
@@ -94,26 +94,29 @@ export default function ProfileImage({ user }: { user: User }) {
         }
 
         if (imgRef.current && completedCrop) {
-          const croppedFile = await getCroppedImg(imgRef.current, completedCrop);
-          
+          const croppedFile = await getCroppedImg(
+            imgRef.current,
+            completedCrop,
+          );
+
           const response = await ProfileApi.uploadProfilePicture(croppedFile);
-          
+
           if (response.success && response.data) {
             setImageUrl(response.data.avatarUrl);
             toast.success("Profile picture updated successfully!");
-            
+
             // Update user in session
             setUser((prev) =>
-              prev ? { ...prev, avatar: response.data!.avatarUrl } : prev
+              prev ? { ...prev, avatar: response.data!.avatarUrl } : prev,
             );
-            
+
             setSrc(null);
             setCompletedCrop(null);
           }
         }
       } catch (error) {
         toast.error(
-          error instanceof Error ? error.message : "Failed to upload image"
+          error instanceof Error ? error.message : "Failed to upload image",
         );
       }
     });
@@ -130,7 +133,7 @@ export default function ProfileImage({ user }: { user: User }) {
       <div className="mx-auto">
         {!imageUrl && src ? (
           <div className="flex flex-col items-center gap-4">
-            <span className="text-sm text-muted-foreground">
+            <span className="text-muted-foreground text-sm">
               Crop your image (square aspect ratio)
             </span>
             <ReactCrop
@@ -152,13 +155,13 @@ export default function ProfileImage({ user }: { user: User }) {
               />
             </ReactCrop>
             <div className="flex flex-row gap-2">
-              <Button 
-                variant="default" 
+              <Button
+                variant="default"
                 onClick={handleUpload}
                 disabled={uploading || !completedCrop}
               >
                 {uploading ? (
-                  <LoaderCircle className="animate-spin mr-2 h-4 w-4" />
+                  <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
                   <UploadIcon className="mr-2 h-4 w-4" />
                 )}
@@ -176,13 +179,13 @@ export default function ProfileImage({ user }: { user: User }) {
           </div>
         ) : imageUrl ? (
           <>
-            <div className="relative flex w-48 h-48 flex-col items-center justify-center overflow-hidden rounded-full border-4 border-muted">
+            <div className="border-muted relative flex h-48 w-48 flex-col items-center justify-center overflow-hidden rounded-full border-4">
               <Image
                 src={imageUrl}
                 alt="profile-image"
                 width={200}
                 height={200}
-                className="object-cover w-full h-full"
+                className="h-full w-full object-cover"
               />
             </div>
             <Button
@@ -199,8 +202,8 @@ export default function ProfileImage({ user }: { user: User }) {
           <>
             <div
               className={cn(
-                "relative flex flex-col items-center justify-center overflow-hidden rounded-xl outline-2 outline-dashed outline-muted-foreground/25 hover:outline-muted-foreground/50 transition-colors cursor-pointer",
-                "bg-muted/50 aspect-square w-48 h-48"
+                "outline-muted-foreground/25 hover:outline-muted-foreground/50 relative flex cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl outline-2 transition-colors outline-dashed",
+                "bg-muted/50 aspect-square h-48 w-48",
               )}
             >
               <input
@@ -208,14 +211,14 @@ export default function ProfileImage({ user }: { user: User }) {
                 name="image"
                 accept="image/*"
                 onChange={handleOnImageChange}
-                className="absolute h-full w-full opacity-0 cursor-pointer"
+                className="absolute h-full w-full cursor-pointer opacity-0"
                 disabled={uploading}
               />
-              <UploadIcon className="mb-2 h-12 w-12 text-muted-foreground" />
-              <span className="text-sm font-medium text-muted-foreground text-center px-4">
+              <UploadIcon className="text-muted-foreground mb-2 h-12 w-12" />
+              <span className="text-muted-foreground px-4 text-center text-sm font-medium">
                 Click to upload profile picture
               </span>
-              <span className="text-xs text-muted-foreground mt-1">
+              <span className="text-muted-foreground mt-1 text-xs">
                 Max 5MB, PNG/JPG
               </span>
             </div>
@@ -223,7 +226,7 @@ export default function ProfileImage({ user }: { user: User }) {
               <Button
                 variant="ghost"
                 onClick={() => setImageUrl(user.avatar)}
-                className="mx-auto mt-4 w-full text-muted-foreground"
+                className="text-muted-foreground mx-auto mt-4 w-full"
               >
                 <XIcon className="mr-2 h-4 w-4" />
                 Cancel

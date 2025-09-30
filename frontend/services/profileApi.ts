@@ -23,14 +23,16 @@ export class ProfileApi {
   /**
    * Upload profile picture
    */
-  static async uploadProfilePicture(file: File): Promise<ProfilePictureUploadResponse> {
+  static async uploadProfilePicture(
+    file: File,
+  ): Promise<ProfilePictureUploadResponse> {
     try {
       const formData = new FormData();
-      formData.append('avatar', file);
+      formData.append("avatar", file);
 
       const response = await ApiClient.post("/profile/upload", formData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          "Content-Type": "multipart/form-data",
         },
       });
 
@@ -38,7 +40,7 @@ export class ProfileApi {
     } catch (error: any) {
       console.error("Error uploading profile picture:", error);
       throw new Error(
-        error.response?.data?.message || "Failed to upload profile picture"
+        error.response?.data?.message || "Failed to upload profile picture",
       );
     }
   }

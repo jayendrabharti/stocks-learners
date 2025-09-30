@@ -1,6 +1,10 @@
 import { Router } from "express";
 import multer from "multer";
-import { uploadProfilePicture, getProfilePicture, deleteProfilePicture } from "../controllers/profile.controllers.js";
+import {
+  uploadProfilePicture,
+  getProfilePicture,
+  deleteProfilePicture,
+} from "../controllers/profile.controllers.js";
 import validToken from "../middlewares/validToken.js";
 
 const router = Router();
@@ -13,16 +17,21 @@ const upload = multer({
   },
   fileFilter: (_req, file, cb) => {
     // Accept only image files
-    if (file.mimetype.startsWith('image/')) {
+    if (file.mimetype.startsWith("image/")) {
       cb(null, true);
     } else {
-      cb(new Error('Only image files are allowed!'));
+      cb(new Error("Only image files are allowed!"));
     }
   },
 });
 
 // Upload profile picture
-router.post("/upload", validToken, upload.single('avatar'), uploadProfilePicture);
+router.post(
+  "/upload",
+  validToken,
+  upload.single("avatar"),
+  uploadProfilePicture
+);
 
 // Get profile picture URL
 router.get("/avatar/:userId", getProfilePicture);
