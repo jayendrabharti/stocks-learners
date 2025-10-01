@@ -7,6 +7,9 @@ import instrumentsRouter from "./routes/instruments.routes.js";
 import marketRouter from "./routes/market.routes.js";
 import watchlistRouter from "./routes/watchlist.routes.js";
 import profileRouter from "./routes/profile.routes.js";
+import walletRouter from "./routes/wallet.route.js";
+import tradingRouter from "./routes/trading.route.js";
+import indicesRouter from "./routes/indices.route.js";
 
 dotenv.config();
 
@@ -46,6 +49,9 @@ app.use("/instruments", instrumentsRouter);
 app.use("/market", marketRouter);
 app.use("/watchlist", watchlistRouter);
 app.use("/profile", profileRouter);
+app.use("/wallet", walletRouter);
+app.use("/trading", tradingRouter);
+app.use("/api/indices", indicesRouter);
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Trading Server is running on port ${PORT}`);

@@ -93,14 +93,19 @@ model Wallet {
   virtualCash      Decimal  @default(1000000.00) @db.Decimal(15, 2) // Starting ₹10,00,000
   currency         Currency @default(INR)                            // Default currency
   
-  // Portfolio metrics (calculated from holdings)
-  totalInvested    Decimal @default(0.00) @db.Decimal(15, 2)      // Total amount invested in stocks
-  currentValue     Decimal @default(0.00) @db.Decimal(15, 2)      // Current value of all holdings
-  totalPnL         Decimal @default(0.00) @db.Decimal(15, 2)      // Total profit/loss
-  totalPnLPercent  Float   @default(0.0)                          // Total P&L percentage
+  // Portfolio metrics - Delivery (CNC) holdings
+  totalInvested    Decimal @default(0.00) @db.Decimal(15, 2)      // Total amount invested in CNC stocks
+  currentValue     Decimal @default(0.00) @db.Decimal(15, 2)      // Current value of CNC holdings
+  totalPnL         Decimal @default(0.00) @db.Decimal(15, 2)      // Total CNC profit/loss
+  totalPnLPercent  Float   @default(0.0)                          // Total CNC P&L percentage
+  
+  // Intraday (MIS) metrics
+  misMarginUsed    Decimal @default(0.00) @db.Decimal(15, 2)      // Margin blocked for MIS positions
+  misPositionsValue Decimal @default(0.00) @db.Decimal(15, 2)     // Current value of MIS positions
+  misPnL           Decimal @default(0.00) @db.Decimal(15, 2)      // Unrealized MIS P&L
   
   // Portfolio performance tracking
-  dayPnL           Decimal @default(0.00) @db.Decimal(15, 2)      // Today's P&L
+  dayPnL           Decimal @default(0.00) @db.Decimal(15, 2)      // Today's P&L (CNC + MIS)
   dayPnLPercent    Float   @default(0.0)                          // Today's P&L percentage
   
   // Metadata
@@ -123,6 +128,9 @@ model Portfolio {
   exchange          String                                         // "NSE" or "BSE"
   isin              String?                                        // ISIN code
   
+  // Product type - CNC (Delivery) or MIS (Intraday)
+  product           ProductType                                    // CNC or MIS
+  
   // Position details
   quantity          Int                                            // Number of shares owned
   averagePrice      Decimal  @db.Decimal(10, 2)                  // Average buying price per share
@@ -138,14 +146,19 @@ model Portfolio {
   dayChange         Decimal  @default(0.00) @db.Decimal(10, 2)   // Today's price change
   dayChangePercent  Float    @default(0.0)                       // Today's percentage change
   
+  // Intraday specific - tracking for auto square-off
+  tradeDate         DateTime @default(now()) @db.Date            // Date of trade (for MIS positions)
+  
   // Metadata
   createdAt         DateTime @default(now())                      // First purchase date
   updatedAt         DateTime @updatedAt                           // Last transaction update
   lastPriceUpdate   DateTime @default(now())                     // Last price update from API
 
-  @@unique([userId, stockSymbol, exchange])
+  @@unique([userId, stockSymbol, exchange, product])             // Allow separate CNC and MIS positions
   @@index([userId])
   @@index([stockSymbol])
+  @@index([userId, product])                                     // Query by product type
+  @@index([tradeDate, product])                                  // Query intraday positions by date
   @@map("portfolios")
 }
 
@@ -160,6 +173,9 @@ model Transaction {
   stockName       String
   exchange        String
   isin            String?
+  
+  // Product type - CNC (Delivery) or MIS (Intraday)
+  product         ProductType     @default(CNC)                   // Product type for this transaction
   
   // Transaction details
   type            TransactionType                                  // BUY or SELL
@@ -189,6 +205,7 @@ model Transaction {
   @@index([userId])
   @@index([stockSymbol])
   @@index([type])
+  @@index([product])
   @@index([executedAt])
   @@map("transactions")
 }
@@ -308,6 +325,11 @@ enum TransactionStatus {
   COMPLETED
   FAILED
   CANCELLED
+}
+
+enum ProductType {
+  CNC       // Cash and Carry - Delivery based trading (full payment required)
+  MIS       // Margin Intraday Square-off - Must be squared off same day (leveraged)
 }
 
 enum OrderType {
