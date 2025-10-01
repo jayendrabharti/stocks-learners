@@ -4,6 +4,9 @@ import React, { useState, useEffect } from "react";
 import { StockSearch } from "../../../../components/trading/StockSearch";
 import { Watchlist } from "../../../../components/trading/Watchlist";
 import { WatchlistButton } from "../../../../components/trading/WatchlistButton";
+import IndicesCard from "../../../../components/indices/IndicesCard";
+import { useWallet } from "../../../../hooks/useWallet";
+import { getPortfolio } from "../../../../services/tradingApi";
 import {
   Card,
   CardContent,
@@ -12,6 +15,7 @@ import {
 } from "../../../../components/ui/card";
 import { Button } from "../../../../components/ui/button";
 import { Badge } from "../../../../components/ui/badge";
+import { Skeleton } from "../../../../components/ui/skeleton";
 import {
   TrendingUp,
   TrendingDown,
@@ -215,6 +219,11 @@ export default function StocksPage() {
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
+  // Portfolio and wallet data
+  const { summary: walletSummary, loading: walletLoading } = useWallet();
+  const [portfolio, setPortfolio] = useState<any>(null);
+  const [portfolioLoading, setPortfolioLoading] = useState(true);
+
   // Fetch market data
   useEffect(() => {
     const fetchMarketData = async () => {
@@ -249,15 +258,44 @@ export default function StocksPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Mock portfolio data - replace with real data from your backend
+  // Fetch portfolio data
+  useEffect(() => {
+    const fetchPortfolioData = async () => {
+      try {
+        setPortfolioLoading(true);
+        const data = await getPortfolio();
+        setPortfolio(data);
+      } catch (error) {
+        console.error("Failed to fetch portfolio:", error);
+      } finally {
+        setPortfolioLoading(false);
+      }
+    };
+
+    fetchPortfolioData();
+  }, []);
+
+  // Calculate portfolio stats from real data
   const portfolioStats = {
-    totalValue: 1000000,
-    investedValue: 0,
-    currentValue: 1000000,
-    totalPnL: 0,
-    totalPnLPercent: 0,
-    dayPnL: 0,
-    dayPnLPercent: 0,
+    totalValue:
+      walletSummary && portfolio?.summary
+        ? parseFloat(walletSummary.virtualCash) +
+          parseFloat(portfolio.summary.currentValue || "0")
+        : walletSummary
+          ? parseFloat(walletSummary.virtualCash)
+          : 0,
+    investedValue: portfolio?.summary
+      ? parseFloat(portfolio.summary.totalInvested || "0")
+      : 0,
+    currentValue: walletSummary ? parseFloat(walletSummary.virtualCash) : 0,
+    totalPnL: portfolio?.summary
+      ? parseFloat(portfolio.summary.totalPnL || "0")
+      : 0,
+    totalPnLPercent: portfolio?.summary?.totalPnLPercent || 0,
+    dayPnL: portfolio?.summary
+      ? parseFloat(portfolio.summary.dayPnL || "0")
+      : 0,
+    dayPnLPercent: portfolio?.summary?.dayPnLPercent || 0,
   };
 
   // Check if market is open
@@ -283,70 +321,124 @@ export default function StocksPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-              <div className="text-center md:text-left">
-                <div className="mb-2 flex items-center justify-center md:justify-start">
-                  <div className="bg-chart-1/10 mr-2 rounded-lg p-2">
-                    <Wallet className="text-chart-1 h-5 w-5" />
+            {walletLoading || portfolioLoading ? (
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                {/* Wallet Balance Loading */}
+                <div className="text-center md:text-left">
+                  <div className="mb-2 flex items-center justify-center md:justify-start">
+                    <div className="bg-chart-1/10 mr-2 rounded-lg p-2">
+                      <Wallet className="text-chart-1 h-5 w-5" />
+                    </div>
+                    <span className="text-muted-foreground text-sm font-medium">
+                      Wallet Balance
+                    </span>
                   </div>
-                  <span className="text-muted-foreground text-sm font-medium">
-                    Total Value
-                  </span>
+                  <Skeleton className="mx-auto h-12 w-52 md:mx-0" />
+                  <Skeleton className="mx-auto mt-1 h-5 w-32 md:mx-0" />
                 </div>
-                <p className="text-foreground text-3xl font-bold">
-                  ₹{portfolioStats.totalValue.toLocaleString()}
-                </p>
-                <Badge variant="secondary" className="mt-1">
-                  Virtual Money
-                </Badge>
+                {/* Invested Loading */}
+                <div className="text-center md:text-left">
+                  <div className="mb-2 flex items-center justify-center md:justify-start">
+                    <div className="bg-chart-2/10 mr-2 rounded-lg p-2">
+                      <Activity className="text-chart-2 h-5 w-5" />
+                    </div>
+                    <span className="text-muted-foreground text-sm font-medium">
+                      Invested
+                    </span>
+                  </div>
+                  <Skeleton className="mx-auto h-10 w-48 md:mx-0" />
+                  <Skeleton className="mx-auto mt-1 h-5 w-40 md:mx-0" />
+                </div>
+                {/* P&L Loading */}
+                <div className="text-center md:text-left">
+                  <div className="mb-2 flex items-center justify-center md:justify-start">
+                    <div className="bg-chart-4/10 mr-2 rounded-lg p-2">
+                      <PieChart className="text-chart-4 h-5 w-5" />
+                    </div>
+                    <span className="text-muted-foreground text-sm font-medium">
+                      Total P&L
+                    </span>
+                  </div>
+                  <Skeleton className="mx-auto h-10 w-48 md:mx-0" />
+                  <Skeleton className="mx-auto mt-1 h-5 w-20 md:mx-0" />
+                </div>
               </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                {/* Wallet Balance - Available Cash */}
+                <div className="text-center md:text-left">
+                  <div className="mb-2 flex items-center justify-center md:justify-start">
+                    <div className="bg-chart-1/10 mr-2 rounded-lg p-2">
+                      <Wallet className="text-chart-1 h-5 w-5" />
+                    </div>
+                    <span className="text-muted-foreground text-sm font-medium">
+                      Wallet Balance
+                    </span>
+                  </div>
+                  <p className="text-foreground text-4xl font-bold">
+                    ₹{portfolioStats.currentValue.toLocaleString()}
+                  </p>
+                  <Badge variant="secondary" className="mt-1">
+                    Available Cash
+                  </Badge>
+                </div>
 
-              <div className="text-center md:text-left">
-                <div className="mb-2 flex items-center justify-center md:justify-start">
-                  <div className="bg-chart-2/10 mr-2 rounded-lg p-2">
-                    <Activity className="text-chart-2 h-5 w-5" />
+                {/* Invested Amount */}
+                <div className="text-center md:text-left">
+                  <div className="mb-2 flex items-center justify-center md:justify-start">
+                    <div className="bg-chart-2/10 mr-2 rounded-lg p-2">
+                      <Activity className="text-chart-2 h-5 w-5" />
+                    </div>
+                    <span className="text-muted-foreground text-sm font-medium">
+                      Invested
+                    </span>
                   </div>
-                  <span className="text-muted-foreground text-sm font-medium">
-                    Invested
-                  </span>
+                  <p className="text-foreground text-3xl font-bold">
+                    ₹{portfolioStats.investedValue.toLocaleString()}
+                  </p>
+                  <p className="text-muted-foreground mt-1 text-sm">
+                    Total: ₹{portfolioStats.totalValue.toLocaleString()}
+                  </p>
                 </div>
-                <p className="text-foreground text-3xl font-bold">
-                  ₹{portfolioStats.investedValue.toLocaleString()}
-                </p>
-                <p className="text-muted-foreground mt-1 text-sm">
-                  Available: ₹{portfolioStats.currentValue.toLocaleString()}
-                </p>
-              </div>
 
-              <div className="text-center md:text-left">
-                <div className="mb-2 flex items-center justify-center md:justify-start">
-                  <div className="bg-chart-4/10 mr-2 rounded-lg p-2">
-                    <PieChart className="text-chart-4 h-5 w-5" />
+                {/* Total P&L */}
+                <div className="text-center md:text-left">
+                  <div className="mb-2 flex items-center justify-center md:justify-start">
+                    <div className="bg-chart-4/10 mr-2 rounded-lg p-2">
+                      <PieChart className="text-chart-4 h-5 w-5" />
+                    </div>
+                    <span className="text-muted-foreground text-sm font-medium">
+                      Total P&L
+                    </span>
                   </div>
-                  <span className="text-muted-foreground text-sm font-medium">
-                    Total P&L
-                  </span>
+                  <p
+                    className={`text-3xl font-bold ${
+                      portfolioStats.totalPnL >= 0
+                        ? "text-green-600 dark:text-green-400"
+                        : "text-red-600 dark:text-red-400"
+                    }`}
+                  >
+                    {portfolioStats.totalPnL >= 0 ? "+" : ""}₹
+                    {Math.abs(portfolioStats.totalPnL).toLocaleString()}
+                  </p>
+                  <Badge
+                    variant={
+                      portfolioStats.totalPnLPercent >= 0
+                        ? "default"
+                        : "destructive"
+                    }
+                    className="mt-1"
+                  >
+                    {portfolioStats.totalPnLPercent >= 0 ? "+" : ""}
+                    {portfolioStats.totalPnLPercent}%
+                  </Badge>
                 </div>
-                <p className="text-muted-foreground text-3xl font-bold">
-                  ₹{portfolioStats.totalPnL.toLocaleString()}
-                </p>
-                <Badge
-                  variant={
-                    portfolioStats.totalPnLPercent >= 0
-                      ? "default"
-                      : "destructive"
-                  }
-                  className="mt-1"
-                >
-                  {portfolioStats.totalPnLPercent >= 0 ? "+" : ""}
-                  {portfolioStats.totalPnLPercent}%
-                </Badge>
               </div>
-            </div>
+            )}
 
             <div className="border-border mt-6 border-t pt-6">
               <div className="flex flex-row gap-2">
-                <Link href="/dashboard/portfolio" className="contents">
+                <Link href="/portfolio" className="contents">
                   <Button
                     variant="outline"
                     className="hover:border-chart-2/30 hover:bg-chart-2/5 h-auto flex-1 flex-col gap-2 p-4"
@@ -355,7 +447,7 @@ export default function StocksPage() {
                     <span className="text-chart-2 font-medium">Portfolio</span>
                   </Button>
                 </Link>
-                <Link href="/dashboard/watchlist" className="contents">
+                <Link href="/watchlist" className="contents">
                   <Button
                     variant="outline"
                     className="hover:border-chart-4/30 hover:bg-chart-4/5 h-auto flex-1 flex-col gap-2 p-4"
@@ -368,6 +460,9 @@ export default function StocksPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Market Indices */}
+        <IndicesCard />
 
         {/* Market Movers */}
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">

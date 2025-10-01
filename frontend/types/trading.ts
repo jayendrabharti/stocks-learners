@@ -85,16 +85,24 @@ export interface WalletData {
   userId: string;
   virtualCash: number;
   currency: string;
+  // CNC (Delivery) metrics
   totalInvested: number;
   currentValue: number;
   totalPnL: number;
   totalPnLPercent: number;
+  // MIS (Intraday) metrics
+  misMarginUsed: number;
+  misPositionsValue: number;
+  misPnL: number;
+  // Performance tracking
   dayPnL: number;
   dayPnLPercent: number;
   lastUpdatedAt: Date;
   createdAt: Date;
   updatedAt: Date;
 }
+
+export type ProductType = "CNC" | "MIS";
 
 export interface BuyStockRequest {
   stockSymbol: string; // This should be the trading symbol, not the display name
@@ -104,14 +112,18 @@ export interface BuyStockRequest {
   orderType: "MARKET" | "LIMIT";
   price?: number;
   isin?: string;
+  product?: ProductType; // CNC (Delivery) or MIS (Intraday)
 }
 
 export interface SellStockRequest {
   stockSymbol: string;
+  stockName: string;
   exchange: string;
   quantity: number;
   orderType: "MARKET" | "LIMIT";
   price?: number;
+  isin?: string;
+  product?: ProductType; // CNC (Delivery) or MIS (Intraday)
 }
 
 export interface TransactionData {
@@ -121,6 +133,7 @@ export interface TransactionData {
   stockName: string;
   exchange: string;
   isin?: string;
+  product: ProductType; // CNC or MIS
   type: "BUY" | "SELL";
   quantity: number;
   price: number;
@@ -145,6 +158,7 @@ export interface PortfolioHolding {
   stockName: string;
   exchange: string;
   isin?: string;
+  product: ProductType; // CNC (Delivery) or MIS (Intraday)
   quantity: number;
   averagePrice: number;
   totalInvested: number;
@@ -154,6 +168,7 @@ export interface PortfolioHolding {
   unrealizedPnLPerc?: number;
   dayChange?: number;
   dayChangePerc?: number;
+  tradeDate: Date; // Important for MIS square-off tracking
   sector?: string;
   industry?: string;
   lastPriceUpdate?: Date;

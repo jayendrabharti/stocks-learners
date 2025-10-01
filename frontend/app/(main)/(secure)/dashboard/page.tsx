@@ -10,6 +10,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useWatchlist } from "@/providers/WatchlistProvider";
+import { useWallet } from "@/hooks/useWallet";
+import { getPortfolio, getTransactionHistory } from "@/services/tradingApi";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   BarChart3,
@@ -19,20 +22,61 @@ import {
   Activity,
   ArrowUpRight,
   ArrowDownRight,
+  Loader2,
 } from "lucide-react";
 
 export default function DashboardPage() {
   const { watchlist } = useWatchlist();
+  const { summary: walletSummary, loading: walletLoading } = useWallet();
+  const [portfolio, setPortfolio] = useState<any>(null);
+  const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock portfolio data - replace with real data later
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [portfolioData, transactionsData] = await Promise.all([
+          getPortfolio(),
+          getTransactionHistory(1, 5),
+        ]);
+        setPortfolio(portfolioData);
+        setRecentTransactions(transactionsData.transactions);
+      } catch (error) {
+        console.error("Failed to fetch dashboard data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
   const portfolioStats = {
-    totalValue: 125000,
-    todayChange: 2500,
-    todayChangePerc: 2.04,
-    totalStocks: 8,
-    totalProfit: 15000,
-    totalProfitPerc: 13.6,
+    totalValue: portfolio?.summary
+      ? parseFloat(portfolio.summary.currentValue)
+      : 0,
+    totalInvested: portfolio?.summary
+      ? parseFloat(portfolio.summary.totalInvested)
+      : 0,
+    totalStocks: portfolio?.holdings?.length || 0,
+    totalProfit: portfolio?.summary
+      ? parseFloat(portfolio.summary.totalPnL)
+      : 0,
+    totalProfitPerc: portfolio?.summary?.totalPnLPercent || 0,
+    virtualCash: walletSummary ? parseFloat(walletSummary.virtualCash) : 0,
+    dayPnL: portfolio?.summary
+      ? parseFloat(portfolio.summary.dayPnL || "0")
+      : 0,
+    dayPnLPercent: portfolio?.summary?.dayPnLPercent || 0,
   };
+
+  if (loading || walletLoading) {
+    return (
+      <div className="flex h-96 items-center justify-center">
+        <Loader2 className="text-primary h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -64,20 +108,18 @@ export default function DashboardPage() {
               ₹{portfolioStats.totalValue.toLocaleString()}
             </div>
             <div className="text-muted-foreground flex items-center text-xs">
-              {portfolioStats.todayChange >= 0 ? (
+              {portfolioStats.dayPnL >= 0 ? (
                 <ArrowUpRight className="mr-1 h-3 w-3 text-green-500" />
               ) : (
                 <ArrowDownRight className="mr-1 h-3 w-3 text-red-500" />
               )}
               <span
                 className={
-                  portfolioStats.todayChange >= 0
-                    ? "text-green-500"
-                    : "text-red-500"
+                  portfolioStats.dayPnL >= 0 ? "text-green-500" : "text-red-500"
                 }
               >
-                ₹{Math.abs(portfolioStats.todayChange).toLocaleString()} (
-                {portfolioStats.todayChangePerc}%)
+                ₹{Math.abs(portfolioStats.dayPnL).toLocaleString()} (
+                {portfolioStats.dayPnLPercent}%)
               </span>
               <span className="ml-1">from yesterday</span>
             </div>
@@ -152,7 +194,7 @@ export default function DashboardPage() {
               </div>
             </div>
             <Button asChild className="w-full">
-              <Link href="/dashboard/portfolio">View Full Portfolio</Link>
+              <Link href="/portfolio">View Full Portfolio</Link>
             </Button>
           </CardContent>
         </Card>
@@ -179,13 +221,79 @@ export default function DashboardPage() {
               </div>
             </div>
             <Button asChild variant="outline" className="w-full">
-              <Link href="/dashboard/watchlist">View Watchlist</Link>
+              <Link href="/watchlist">View Watchlist</Link>
             </Button>
           </CardContent>
         </Card>
       </div>
 
       {/* Recent Activity or Market Summary could go here */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Recent Transactions</CardTitle>
+              <CardDescription>Your latest trading activity</CardDescription>
+            </div>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/transactions">View All</Link>
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {recentTransactions.length > 0 ? (
+            <div className="space-y-3">
+              {recentTransactions.map((transaction) => (
+                <div
+                  key={transaction.id}
+                  className="flex items-center justify-between border-b pb-3 last:border-0"
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`flex h-10 w-10 items-center justify-center rounded-full ${
+                        transaction.type === "BUY"
+                          ? "bg-green-100 text-green-600 dark:bg-green-900/20"
+                          : "bg-red-100 text-red-600 dark:bg-red-900/20"
+                      }`}
+                    >
+                      {transaction.type === "BUY" ? (
+                        <ArrowUpRight className="h-5 w-5" />
+                      ) : (
+                        <ArrowDownRight className="h-5 w-5" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-medium">{transaction.stockSymbol}</p>
+                      <p className="text-muted-foreground text-sm">
+                        {transaction.quantity} shares @ ₹
+                        {parseFloat(transaction.price).toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-medium">
+                      ₹{parseFloat(transaction.totalAmount).toLocaleString()}
+                    </p>
+                    <p className="text-muted-foreground text-xs">
+                      {new Date(transaction.executedAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-muted-foreground flex flex-col items-center justify-center py-8">
+              <Activity className="mb-2 h-8 w-8" />
+              <p>No recent transactions</p>
+              <Button asChild variant="link" size="sm" className="mt-2">
+                <Link href="/stocks">Start Trading</Link>
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Market Overview */}
       <Card>
         <CardHeader>
           <CardTitle>Market Summary</CardTitle>

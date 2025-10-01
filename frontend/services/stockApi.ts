@@ -42,38 +42,44 @@ export class StockApiService {
         };
       }
 
-      const size = filters.limit || 50;
+      const size = filters.limit || 20; // Increased default to show more results
       const from = filters.page ? (filters.page - 1) * size : 0;
 
-      // Use our Next.js API route to proxy Groww API (avoids CORS issues)
-      const response = await fetch(
-        `/api/search?from=${from}&query=${encodeURIComponent(query)}&size=${size}&web=true`,
-      );
+      // Use backend API endpoint for global search
+      const response = await ApiClient.get("/instruments/search", {
+        params: {
+          query: query,
+          from: from,
+          size: size,
+          web: "true",
+        },
+      });
 
-      if (!response.ok) {
-        throw new Error(`Search failed: ${response.status}`);
+      if (!response.data.success) {
+        throw new Error(
+          response.data.message || "Search failed with no error message",
+        );
       }
 
-      const apiResponse = await response.json();
+      const apiResponse = response.data.data;
 
-      if (!apiResponse.data || !apiResponse.data.content) {
-        throw new Error("Invalid response structure");
+      if (!apiResponse || !(apiResponse as any).content) {
+        console.error("❌ Invalid response structure:", apiResponse);
+        throw new Error("Invalid response structure from backend");
       }
 
       // Transform Groww API response to our InstrumentSearch format
-      const transformedData: InstrumentSearch[] = apiResponse.data.content
+      const transformedData: InstrumentSearch[] = (apiResponse as any).content
         .filter((item: any) => {
-          // Filter based on entity_type and apply filters
+          // Filter based on entity_type if specified
           if (
             filters.instrumentType &&
             item.entity_type !== filters.instrumentType
           ) {
             return false;
           }
-          // Only show stocks for now, filter out options
-          if (!filters.instrumentType && item.entity_type !== "Stocks") {
-            return false;
-          }
+          // Show all entity types: Stocks, Indices, ETFs, Mutual Funds, etc.
+          // No filtering by default - let users see everything
           return true;
         })
         .map((item: any) => ({
@@ -91,7 +97,7 @@ export class StockApiService {
               : item.bse_scrip_code
                 ? "BSE"
                 : "Unknown"),
-          instrumentType: item.entity_type || "Unknown",
+          instrumentType: item.entity_type || "Unknown", // Stocks, Indices, ETFs, etc.
           isin: item.isin || item.id,
           sector: "N/A", // Not provided by Groww API
           industry: "N/A", // Not provided by Groww API

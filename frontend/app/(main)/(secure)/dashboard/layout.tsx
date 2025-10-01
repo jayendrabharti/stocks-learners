@@ -28,12 +28,12 @@ import useIsMobile from "@/hooks/useIsMobile";
 const menuItems = [
   {
     title: "Portfolio",
-    url: "/dashboard/portfolio",
+    url: "/portfolio",
     icon: BarChart3,
   },
   {
     title: "Watchlist",
-    url: "/dashboard/watchlist",
+    url: "/watchlist",
     icon: Star,
   },
 ];

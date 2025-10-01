@@ -71,6 +71,23 @@ export const StockCard: React.FC<StockCardProps> = ({
     }
   };
 
+  const getEntityTypeBadgeColor = (entityType: string) => {
+    switch (entityType) {
+      case "Stocks":
+        return "bg-green-100 text-green-800";
+      case "Indices":
+        return "bg-purple-100 text-purple-800";
+      case "ETFs":
+        return "bg-indigo-100 text-indigo-800";
+      case "Mutual Funds":
+        return "bg-pink-100 text-pink-800";
+      case "Bonds":
+        return "bg-yellow-100 text-yellow-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
   return (
     <div className="p-4 transition-colors hover:bg-gray-50">
       <div className="flex items-center space-x-3">
@@ -110,16 +127,21 @@ export const StockCard: React.FC<StockCardProps> = ({
             >
               {stock.exchange || "N/A"}
             </span>
+            {stock.instrumentType && (
+              <span
+                className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${getEntityTypeBadgeColor(stock.instrumentType)}`}
+              >
+                {stock.instrumentType}
+              </span>
+            )}
           </div>
 
           <p className="truncate text-xs text-gray-500">
             {stock.name || "N/A"}
           </p>
 
-          {stock.instrumentType && (
-            <p className="text-xs text-gray-400">
-              {stock.instrumentType} • {stock.sector || "N/A"}
-            </p>
+          {stock.sector && stock.sector !== "N/A" && (
+            <p className="text-xs text-gray-400">{stock.sector}</p>
           )}
         </div>
 

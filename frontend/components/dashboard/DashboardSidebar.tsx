@@ -31,13 +31,13 @@ import { Button } from "@/components/ui/button";
 const dashboardItems = [
   {
     title: "Portfolio",
-    url: "/dashboard/portfolio",
+    url: "/portfolio",
     icon: PieChart,
     description: "View your holdings and performance",
   },
   {
     title: "Watchlist",
-    url: "/dashboard/watchlist",
+    url: "/watchlist",
     icon: Star,
     description: "Track your favorite stocks",
   },

@@ -15,7 +15,7 @@ export const useStockSearch = () => {
     exchange: "",
     instrumentType: "",
     page: 1,
-    limit: 50,
+    limit: 20, // Increased from 50 to 20 for better initial results
   });
   const [results, setResults] = useState<InstrumentSearch[]>([]);
   const [pagination, setPagination] = useState<

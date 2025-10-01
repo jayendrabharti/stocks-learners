@@ -27,6 +27,16 @@ import {
 } from "lucide-react";
 import { WatchlistButton } from "@/components/trading/WatchlistButton";
 import {
+  BuyStockDialog,
+  SellStockDialog,
+  MarketStatus,
+} from "@/components/trading";
+import {
+  getPortfolio,
+  PortfolioHolding,
+  PortfolioResponse,
+} from "@/services/tradingApi";
+import {
   LineChart,
   Line,
   XAxis,
@@ -166,6 +176,14 @@ export default function StockPage() {
   const [quantity, setQuantity] = useState<number>(1);
   const [price, setPrice] = useState<number>(0);
   const [priceType, setPriceType] = useState<"LIMIT" | "MARKET">("LIMIT");
+
+  // Dialog states
+  const [showBuyDialog, setShowBuyDialog] = useState(false);
+  const [showSellDialog, setShowSellDialog] = useState(false);
+
+  // Portfolio state
+  const [portfolio, setPortfolio] = useState<PortfolioResponse | null>(null);
+  const [portfolioLoading, setPortfolioLoading] = useState(true);
 
   const fetchInstrumentData = async () => {
     try {
@@ -350,6 +368,23 @@ export default function StockPage() {
 
     initializeData();
   }, [stockId]);
+
+  // Fetch portfolio data
+  useEffect(() => {
+    const fetchPortfolioData = async () => {
+      try {
+        setPortfolioLoading(true);
+        const data = await getPortfolio();
+        setPortfolio(data);
+      } catch (error) {
+        console.error("Failed to fetch portfolio:", error);
+      } finally {
+        setPortfolioLoading(false);
+      }
+    };
+
+    fetchPortfolioData();
+  }, []);
 
   useEffect(() => {
     if (instrument) {
@@ -1420,6 +1455,153 @@ export default function StockPage() {
 
           {/* Buy/Sell Section */}
           <div className="w-80 space-y-4">
+            {/* Holdings Card - Show if user has this stock */}
+            {portfolio?.holdings.all.find(
+              (h) => h.stockSymbol === instrument?.trading_symbol,
+            ) && (
+              <Card className="border-primary/50 bg-primary/5">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Your Holdings</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {(() => {
+                    const allHoldingsForStock = portfolio.holdings.all.filter(
+                      (h) => h.stockSymbol === instrument?.trading_symbol,
+                    );
+                    if (allHoldingsForStock.length === 0) return null;
+
+                    // Calculate combined metrics
+                    let totalQuantity = 0;
+                    let totalInvested = 0;
+                    let totalCurrentValue = 0;
+
+                    allHoldingsForStock.forEach((holding) => {
+                      const avgPrice = parseFloat(holding.averagePrice);
+                      const currentPrice = liveData?.last_price || avgPrice;
+                      totalQuantity += holding.quantity;
+                      totalInvested += parseFloat(holding.totalInvested);
+                      totalCurrentValue += currentPrice * holding.quantity;
+                    });
+
+                    const totalPnL = totalCurrentValue - totalInvested;
+                    const pnlPercent = (totalPnL / totalInvested) * 100;
+                    const isProfitable = totalPnL >= 0;
+
+                    // Get weighted average price
+                    const weightedAvgPrice = totalInvested / totalQuantity;
+                    const currentPrice =
+                      liveData?.last_price || weightedAvgPrice;
+
+                    return (
+                      <>
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground text-sm">
+                            Quantity
+                          </span>
+                          <span className="text-lg font-bold">
+                            {totalQuantity}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground text-sm">
+                            Avg Price
+                          </span>
+                          <span className="font-medium">
+                            {formatCurrency(weightedAvgPrice)}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground text-sm">
+                            Current Price
+                          </span>
+                          <span className="font-medium">
+                            {formatCurrency(currentPrice)}
+                          </span>
+                        </div>
+                        <Separator />
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground text-sm">
+                            Invested
+                          </span>
+                          <span className="font-medium">
+                            {formatCurrency(totalInvested)}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground text-sm">
+                            Current Value
+                          </span>
+                          <span className="font-bold">
+                            {formatCurrency(totalCurrentValue)}
+                          </span>
+                        </div>
+                        <div className="bg-background rounded-lg p-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium">P&L</span>
+                            <div className="text-right">
+                              <div
+                                className={`text-lg font-bold ${
+                                  isProfitable
+                                    ? "text-green-600 dark:text-green-400"
+                                    : "text-red-600 dark:text-red-400"
+                                }`}
+                              >
+                                {isProfitable ? "+" : ""}
+                                {formatCurrency(totalPnL)}
+                              </div>
+                              <div
+                                className={`text-xs ${
+                                  isProfitable
+                                    ? "text-green-600 dark:text-green-400"
+                                    : "text-red-600 dark:text-red-400"
+                                }`}
+                              >
+                                {isProfitable ? "+" : ""}
+                                {pnlPercent.toFixed(2)}%
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Show breakdown if user has both CNC and MIS */}
+                        {allHoldingsForStock.length > 1 && (
+                          <div className="mt-3 border-t pt-3">
+                            <div className="text-muted-foreground mb-2 text-xs font-medium">
+                              Holdings Breakdown:
+                            </div>
+                            {allHoldingsForStock.map((h, idx) => (
+                              <div
+                                key={idx}
+                                className="mb-1 flex items-center justify-between text-xs"
+                              >
+                                <span
+                                  className={`rounded px-2 py-0.5 ${
+                                    h.product === "CNC"
+                                      ? "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
+                                      : "bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300"
+                                  }`}
+                                >
+                                  {h.product}
+                                </span>
+                                <span>
+                                  {h.quantity} @{" "}
+                                  {formatCurrency(parseFloat(h.averagePrice))}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Market Status Banner */}
+            <MarketStatus showFullMessage className="w-full" />
+
+            {/* Trading Card */}
             <Card className="sticky top-6">
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
@@ -1441,161 +1623,86 @@ export default function StockPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Buy/Sell Toggle */}
-                <div className="bg-muted flex rounded-lg p-1">
-                  <Button
-                    variant={orderSide === "BUY" ? "default" : "ghost"}
-                    className={`flex-1 rounded-md ${
-                      orderSide === "BUY"
-                        ? "bg-green-600 text-white hover:bg-green-700"
-                        : ""
-                    }`}
-                    onClick={() => setOrderSide("BUY")}
-                  >
-                    BUY
-                  </Button>
-                  <Button
-                    variant={orderSide === "SELL" ? "default" : "ghost"}
-                    className={`flex-1 rounded-md ${
-                      orderSide === "SELL"
-                        ? "bg-red-600 text-white hover:bg-red-700"
-                        : ""
-                    }`}
-                    onClick={() => setOrderSide("SELL")}
-                  >
-                    SELL
-                  </Button>
-                </div>
-
-                {/* Order Type Selection */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Order Type</Label>
-                  <div className="flex gap-2">
-                    <Button
-                      variant={orderType === "DELIVERY" ? "default" : "outline"}
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => setOrderType("DELIVERY")}
-                    >
-                      Delivery
-                    </Button>
-                    <Button
-                      variant={orderType === "INTRADAY" ? "default" : "outline"}
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => setOrderType("INTRADAY")}
-                    >
-                      Intraday
-                    </Button>
-                    <Button
-                      variant={orderType === "MTF" ? "default" : "outline"}
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => setOrderType("MTF")}
-                    >
-                      MTF
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Quantity */}
-                <div className="space-y-2">
-                  <Label htmlFor="quantity" className="text-sm font-medium">
-                    Quantity
-                  </Label>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      id="quantity"
-                      type="number"
-                      placeholder="1"
-                      value={quantity}
-                      onChange={(e) => setQuantity(Number(e.target.value) || 1)}
-                      min="1"
-                    />
-                    <span className="text-muted-foreground text-xs">qty</span>
-                  </div>
-                </div>
-
-                {/* Price */}
-                <div className="space-y-2">
-                  <Label htmlFor="price" className="text-sm font-medium">
-                    Price
-                  </Label>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      id="price"
-                      type="number"
-                      placeholder={liveData?.last_price?.toString() || "0"}
-                      value={price || liveData?.last_price || 0}
-                      onChange={(e) => setPrice(Number(e.target.value) || 0)}
-                      step="0.01"
-                      disabled={priceType === "MARKET"}
-                    />
-                    <select
-                      className="border-input bg-background h-10 rounded-md border px-3 py-2 text-xs"
-                      value={priceType}
-                      onChange={(e) =>
-                        setPriceType(e.target.value as "LIMIT" | "MARKET")
-                      }
-                    >
-                      <option value="LIMIT">Limit</option>
-                      <option value="MARKET">Market</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Investment Summary */}
-                <div className="bg-muted space-y-2 rounded-lg p-3">
-                  <div className="flex justify-between text-sm">
-                    <span>Balance:</span>
-                    <span className="font-medium">₹0</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Approx required:</span>
+                {/* Quick Stats */}
+                <div className="bg-accent space-y-2 rounded-lg p-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Open</span>
                     <span className="font-medium">
-                      ₹
-                      {(
-                        (price || liveData?.last_price || 0) * quantity
-                      ).toFixed(2)}
+                      {formatCurrency(
+                        parseOHLC(liveData?.ohlc || "0,0,0,0").open,
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">High</span>
+                    <span className="font-medium text-green-600">
+                      {formatCurrency(
+                        parseOHLC(liveData?.ohlc || "0,0,0,0").high,
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Low</span>
+                    <span className="font-medium text-red-600">
+                      {formatCurrency(
+                        parseOHLC(liveData?.ohlc || "0,0,0,0").low,
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Volume</span>
+                    <span className="font-medium">
+                      {formatNumber(liveData?.volume || 0, 0)}
                     </span>
                   </div>
                 </div>
 
-                {/* Buy/Sell Button */}
-                <Button
-                  className={`w-full ${
-                    orderSide === "BUY"
-                      ? "bg-green-600 hover:bg-green-700"
-                      : "bg-red-600 hover:bg-red-700"
-                  }`}
-                  onClick={() => {
-                    // Handle order placement
-                    console.log("Order placed:", {
-                      side: orderSide,
-                      type: orderType,
-                      quantity,
-                      price: priceType === "MARKET" ? "MARKET" : price,
-                      symbol: instrument?.trading_symbol,
-                    });
-                  }}
-                >
-                  {orderSide === "BUY" ? "Buy" : "Sell"}{" "}
-                  {instrument?.trading_symbol || "Stock"}
-                </Button>
+                {/* Trading Buttons */}
+                <div className="space-y-2">
+                  <Button
+                    className="w-full bg-green-600 text-white hover:bg-green-700"
+                    size="lg"
+                    onClick={() => setShowBuyDialog(true)}
+                    disabled={!liveData}
+                  >
+                    Buy {instrument?.trading_symbol || "Stock"}
+                  </Button>
 
-                {/* Charges Breakdown */}
-                <div className="text-muted-foreground space-y-2 text-xs">
+                  <Button
+                    className="w-full bg-red-600 text-white hover:bg-red-700"
+                    size="lg"
+                    onClick={() => setShowSellDialog(true)}
+                    disabled={!liveData}
+                  >
+                    Sell {instrument?.trading_symbol || "Stock"}
+                  </Button>
+                </div>
+
+                {/* Info Note */}
+                <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-950/20">
+                  <p className="text-xs text-blue-900 dark:text-blue-100">
+                    <strong>Trading Options:</strong> Choose between Delivery
+                    (CNC) for long-term holding or Intraday (MIS) for same-day
+                    trades in the dialogs.
+                  </p>
+                </div>
+
+                {/* Trading Info */}
+                <div className="text-muted-foreground space-y-1 text-xs">
                   <div className="flex justify-between">
-                    <span>Brokerage:</span>
-                    <span>₹5.00</span>
+                    <span>Min Qty:</span>
+                    <span>{instrument?.lot_size || 1}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>GST:</span>
-                    <span>₹0.90</span>
+                    <span>Tick Size:</span>
+                    <span>₹{instrument?.tick_size || 0.05}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Total charges:</span>
-                    <span>₹5.90</span>
+                    <span>Circuit Limits:</span>
+                    <span className="text-right">
+                      {formatCurrency(liveData?.lower_circuit_limit || 0)} -{" "}
+                      {formatCurrency(liveData?.upper_circuit_limit || 0)}
+                    </span>
                   </div>
                 </div>
               </CardContent>
@@ -1603,6 +1710,74 @@ export default function StockPage() {
           </div>
         </div>
       </div>
+
+      {/* Buy Dialog */}
+      {liveData && instrument && (
+        <BuyStockDialog
+          open={showBuyDialog}
+          onClose={() => setShowBuyDialog(false)}
+          stock={{
+            symbol: instrument.trading_symbol,
+            name: instrument.name,
+            exchange: exchange,
+            currentPrice: liveData.last_price,
+            isin: instrument.isin,
+          }}
+          onSuccess={() => {
+            // Refetch both live data and portfolio after successful purchase
+            fetchLiveData();
+            getPortfolio().then(setPortfolio).catch(console.error);
+          }}
+        />
+      )}
+
+      {/* Sell Dialog */}
+      {liveData && instrument && (
+        <SellStockDialog
+          open={showSellDialog}
+          onClose={() => setShowSellDialog(false)}
+          stock={{
+            symbol: instrument.trading_symbol,
+            name: instrument.name,
+            exchange: exchange,
+            currentPrice: liveData.last_price,
+            isin: instrument.isin,
+          }}
+          holding={(() => {
+            if (portfolioLoading) {
+              return { quantity: 0, averagePrice: 0 };
+            }
+            // Find all holdings for this stock (could be both CNC and MIS)
+            const holdings = portfolio?.holdings.all.filter(
+              (h) => h.stockSymbol === instrument.trading_symbol,
+            );
+            if (holdings && holdings.length > 0) {
+              // If multiple holdings exist, combine them
+              const totalQuantity = holdings.reduce(
+                (sum, h) => sum + h.quantity,
+                0,
+              );
+              const totalInvested = holdings.reduce(
+                (sum, h) => sum + parseFloat(h.totalInvested),
+                0,
+              );
+              const weightedAvgPrice = totalInvested / totalQuantity;
+
+              return {
+                quantity: totalQuantity,
+                averagePrice: weightedAvgPrice,
+                // Note: SellStockDialog will need to be enhanced to handle selecting which holding to sell
+              };
+            }
+            return { quantity: 0, averagePrice: 0 };
+          })()}
+          onSuccess={() => {
+            // Refetch both live data and portfolio after successful sale
+            fetchLiveData();
+            getPortfolio().then(setPortfolio).catch(console.error);
+          }}
+        />
+      )}
     </div>
   );
 }

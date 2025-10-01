@@ -11,16 +11,11 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "lh3.googleusercontent.com",
       },
-    ],
-  },
-  async redirects() {
-    return [
       {
-        source: "/dashboard",
-        destination: "/dashboard/portfolio",
-        permanent: true,
+        protocol: "https",
+        hostname: "assets-netstorage.groww.in",
       },
-    ];
+    ],
   },
 };
 

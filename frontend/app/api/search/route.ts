@@ -1,3 +1,16 @@
+/**
+ * ⚠️ DEPRECATED - This Next.js API route is no longer used
+ *
+ * Search functionality has been moved to the backend:
+ * Backend: GET /instruments/search
+ *
+ * This file can be safely deleted.
+ * Kept temporarily for reference during migration.
+ *
+ * Date Deprecated: October 1, 2025
+ * Replaced By: server/src/controllers/instruments.controller.ts → globalSearch()
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {

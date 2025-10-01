@@ -14,11 +14,16 @@ import {
   LockIcon,
   LogInIcon,
   UserRoundCogIcon,
+  Wallet,
+  TrendingUp,
+  TrendingDown,
 } from "lucide-react";
 import { Separator } from "../ui/separator";
 import { Button } from "../ui/button";
 import { useSession } from "@/providers/SessionProvider";
+import { useWallet } from "@/hooks/useWallet";
 import { motion, AnimatePresence } from "motion/react";
+import { Skeleton } from "../ui/skeleton";
 
 export default function UserButton({
   className = "",
@@ -30,6 +35,17 @@ export default function UserButton({
   expanded?: boolean;
 }) {
   const { user, status } = useSession();
+  const { summary, loading: walletLoading } = useWallet();
+
+  // Format currency in Indian style (₹1,00,000.00)
+  const formatIndianCurrency = (value: number, currency: string = "INR") => {
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: currency,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
 
   if (status == "loading")
     return <Loader2Icon className={cn("animate-spin", className)} />;
@@ -58,7 +74,121 @@ export default function UserButton({
                 <AvatarFallback>{initials}</AvatarFallback>
               </Avatar>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="w-72">
+              {/* Wallet Section */}
+              {walletLoading ? (
+                <div className="space-y-2 px-3 py-3">
+                  <div className="flex items-center justify-between">
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-4 w-24" />
+                  </div>
+                  <Skeleton className="h-6 w-full" />
+                </div>
+              ) : summary ? (
+                <div className="space-y-2 px-3 py-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground text-xs font-medium">
+                      Virtual Cash
+                    </span>
+                    <Link
+                      href="/portfolio"
+                      className="text-primary text-xs hover:underline"
+                    >
+                      View Portfolio
+                    </Link>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Wallet className="text-primary h-4 w-4" />
+                      <span className="text-foreground text-lg font-bold">
+                        {formatIndianCurrency(
+                          parseFloat(summary.virtualCash),
+                          summary.currency,
+                        )}
+                      </span>
+                    </div>
+                    {parseFloat(summary.totalPnL) !== 0 && (
+                      <div
+                        className={cn(
+                          "flex items-center gap-1 text-xs font-medium",
+                          parseFloat(summary.totalPnL) >= 0
+                            ? "text-green-600 dark:text-green-400"
+                            : "text-red-600 dark:text-red-400",
+                        )}
+                      >
+                        {parseFloat(summary.totalPnL) >= 0 ? (
+                          <TrendingUp className="h-3 w-3" />
+                        ) : (
+                          <TrendingDown className="h-3 w-3" />
+                        )}
+                        <span>
+                          {parseFloat(summary.totalPnL) >= 0 ? "+" : ""}
+                          {summary.totalPnLPercent.toFixed(2)}%
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Investment Summary */}
+                  {summary.totalInvested &&
+                    parseFloat(summary.totalInvested) > 0 && (
+                      <div className="text-muted-foreground flex items-center justify-between text-xs">
+                        <span>
+                          Invested:{" "}
+                          {formatIndianCurrency(
+                            parseFloat(summary.totalInvested),
+                            summary.currency,
+                          )}
+                        </span>
+                        <span>
+                          Current:{" "}
+                          {formatIndianCurrency(
+                            parseFloat(summary.currentValue),
+                            summary.currency,
+                          )}
+                        </span>
+                      </div>
+                    )}
+
+                  {/* MIS Margin Info - Show if user has MIS positions */}
+                  {summary.misMarginUsed &&
+                    parseFloat(summary.misMarginUsed) > 0 && (
+                      <div className="mt-2 border-t pt-2">
+                        <div className="text-muted-foreground mb-1 text-xs font-medium">
+                          Intraday (MIS)
+                        </div>
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground">
+                            Margin Used:
+                          </span>
+                          <span className="font-medium text-orange-600 dark:text-orange-400">
+                            {formatIndianCurrency(
+                              parseFloat(summary.misMarginUsed),
+                              summary.currency,
+                            )}
+                          </span>
+                        </div>
+                        {summary.availableForMIS && (
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-muted-foreground">
+                              Available (4x):
+                            </span>
+                            <span className="font-medium text-green-600 dark:text-green-400">
+                              {formatIndianCurrency(
+                                parseFloat(summary.availableForMIS),
+                                summary.currency,
+                              )}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                </div>
+              ) : null}
+
+              <DropdownMenuSeparator />
+
+              {/* User Info */}
               <div className="space-y-2 px-3 py-2 text-center">
                 {user?.name && (
                   <span className="text-foreground block font-medium">
