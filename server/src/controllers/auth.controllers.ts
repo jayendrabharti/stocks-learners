@@ -29,7 +29,11 @@ export const generateTokens = async (
   const clientRefreshToken =
     req.cookies?.refreshToken || req.headers["refresh-token"];
 
-  if (clientRefreshToken) {
+  const existingToken = await prisma.refreshToken.findUnique({
+    where: { token: clientRefreshToken },
+  });
+
+  if (clientRefreshToken && existingToken) {
     jwt.verify(clientRefreshToken, refreshSecret);
 
     await prisma.refreshToken.update({
