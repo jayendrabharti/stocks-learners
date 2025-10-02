@@ -29,21 +29,29 @@ export const generateTokens = async (
   const clientRefreshToken =
     req.cookies?.refreshToken || req.headers["refresh-token"];
 
-  const existingToken = await prisma.refreshToken.findUnique({
-    where: { token: clientRefreshToken },
-  });
+  // Only query database if we have a token
+  if (clientRefreshToken) {
+    try {
+      const existingToken = await prisma.refreshToken.findUnique({
+        where: { token: clientRefreshToken },
+      });
 
-  if (clientRefreshToken && existingToken) {
-    jwt.verify(clientRefreshToken, refreshSecret);
+      if (existingToken) {
+        jwt.verify(clientRefreshToken, refreshSecret);
 
-    await prisma.refreshToken.update({
-      where: {
-        token: clientRefreshToken,
-      },
-      data: {
-        isRevoked: true,
-      },
-    });
+        await prisma.refreshToken.update({
+          where: {
+            token: clientRefreshToken,
+          },
+          data: {
+            isRevoked: true,
+          },
+        });
+      }
+    } catch (error) {
+      // Token verification failed or DB error - continue with new token generation
+      console.log("Error revoking existing token:", error);
+    }
   }
 
   const accessToken = jwt.sign(
@@ -105,17 +113,80 @@ export const getUser = async (req: Request, res: Response) => {
 export const updateUser = async (req: Request, res: Response) => {
   try {
     const userId = req.user.id;
-    const updatedData = req.body;
+
+    // Whitelist only allowed fields - prevent updating sensitive fields
+    const { name, phone, dateOfBirth, avatar } = req.body;
+
+    const updateData: any = {};
+
+    if (name !== undefined) {
+      if (typeof name !== "string" || name.trim().length === 0) {
+        return sendResponse({
+          res,
+          statusCode: 400,
+          success: false,
+          error: { message: "Name must be a non-empty string" },
+        });
+      }
+      updateData.name = name.trim();
+    }
+
+    if (phone !== undefined) {
+      if (phone !== null) {
+        // Validate phone number format (10 digits)
+        if (!/^\d{10}$/.test(phone)) {
+          return sendResponse({
+            res,
+            statusCode: 400,
+            success: false,
+            error: { message: "Phone number must be exactly 10 digits" },
+          });
+        }
+      }
+      updateData.phone = phone;
+    }
+
+    if (dateOfBirth !== undefined) {
+      if (dateOfBirth !== null) {
+        const dob = new Date(dateOfBirth);
+        if (isNaN(dob.getTime())) {
+          return sendResponse({
+            res,
+            statusCode: 400,
+            success: false,
+            error: { message: "Invalid date format" },
+          });
+        }
+        updateData.dateOfBirth = dob;
+      } else {
+        updateData.dateOfBirth = null;
+      }
+    }
+
+    if (avatar !== undefined) {
+      updateData.avatar = avatar;
+    }
+
+    // Only update if there are fields to update
+    if (Object.keys(updateData).length === 0) {
+      return sendResponse({
+        res,
+        statusCode: 400,
+        success: false,
+        error: { message: "No valid fields to update" },
+      });
+    }
 
     const user = await prisma.user.update({
       where: { id: userId },
-      data: updatedData,
+      data: updateData,
     });
 
     return sendResponse({
       res,
       success: true,
       data: { user },
+      message: "User updated successfully",
     });
   } catch (error) {
     return sendResponse({
@@ -138,12 +209,10 @@ export const refreshUserToken = async (req: Request, res: Response) => {
       statusCode: 401,
       success: false,
       error: {
-        message: "Unauthorized request",
+        message: "Unauthorized request - no refresh token provided",
       },
     });
   }
-
-  jwt.verify(clientRefreshToken, refreshSecret);
 
   try {
     const { id: userId } = jwt.verify(
@@ -156,32 +225,68 @@ export const refreshUserToken = async (req: Request, res: Response) => {
       include: { user: true },
     });
 
-    if (!dbRefreshToken?.user) {
-      throw new Error("Invalid refresh token");
+    // Token not found or revoked - clear cookies
+    if (!dbRefreshToken || dbRefreshToken.isRevoked) {
+      res
+        .clearCookie("accessToken", accessTokenCookieOptions)
+        .clearCookie("refreshToken", refreshTokenCookieOptions);
+
+      return sendResponse({
+        res,
+        statusCode: 401,
+        success: false,
+        error: {
+          message: "Invalid or revoked refresh token. Please login again.",
+        },
+      });
     }
 
-    const { accessToken, refreshToken } = await generateTokens(
-      req,
-      res,
-      dbRefreshToken.user
-    );
+    // Check if token is expired
+    if (dbRefreshToken.expiresAt < new Date()) {
+      // Delete expired token
+      await prisma.refreshToken.delete({
+        where: { id: dbRefreshToken.id },
+      });
+
+      res
+        .clearCookie("accessToken", accessTokenCookieOptions)
+        .clearCookie("refreshToken", refreshTokenCookieOptions);
+
+      return sendResponse({
+        res,
+        statusCode: 401,
+        success: false,
+        error: {
+          message: "Refresh token expired. Please login again.",
+        },
+      });
+    }
+
+    if (!dbRefreshToken?.user) {
+      throw new Error("User not found");
+    }
+
+    await generateTokens(req, res, dbRefreshToken.user);
 
     return sendResponse({
       res,
       success: true,
-      data: { accessToken, refreshToken },
       message: "Token refreshed successfully",
     });
   } catch (error) {
+    // Clear cookies on any JWT error
+    res
+      .clearCookie("accessToken", accessTokenCookieOptions)
+      .clearCookie("refreshToken", refreshTokenCookieOptions);
+
     return sendResponse({
       res,
       success: false,
       error: {
         message: getErrorMessage(
           error,
-          getErrorMessage(error, "Failed to refresh token")
+          "Failed to refresh token. Please login again."
         ),
-        details: error,
       },
       statusCode: 403,
     });
@@ -198,12 +303,10 @@ export const getNewAccessToken = async (req: Request, res: Response) => {
       statusCode: 401,
       success: false,
       error: {
-        message: "Unauthorized request",
+        message: "Unauthorized request - no refresh token provided",
       },
     });
   }
-
-  jwt.verify(clientRefreshToken, refreshSecret);
 
   try {
     const { id: userId } = jwt.verify(
@@ -216,37 +319,72 @@ export const getNewAccessToken = async (req: Request, res: Response) => {
       include: { user: true },
     });
 
-    if (!dbRefreshToken?.user) {
-      throw new Error("Invalid refresh token");
+    // Token not found or revoked - clear cookies
+    if (!dbRefreshToken || dbRefreshToken.isRevoked) {
+      res
+        .clearCookie("accessToken", accessTokenCookieOptions)
+        .clearCookie("refreshToken", refreshTokenCookieOptions);
+
+      return sendResponse({
+        res,
+        statusCode: 401,
+        success: false,
+        error: {
+          message: "Invalid or revoked refresh token. Please login again.",
+        },
+      });
     }
 
-    const { accessToken, refreshToken } = await generateTokens(
-      req,
-      res,
-      dbRefreshToken.user
-    );
+    // Check if token is expired
+    if (dbRefreshToken.expiresAt < new Date()) {
+      // Delete expired token
+      await prisma.refreshToken.delete({
+        where: { id: dbRefreshToken.id },
+      });
+
+      res
+        .clearCookie("accessToken", accessTokenCookieOptions)
+        .clearCookie("refreshToken", refreshTokenCookieOptions);
+
+      return sendResponse({
+        res,
+        statusCode: 401,
+        success: false,
+        error: {
+          message: "Refresh token expired. Please login again.",
+        },
+      });
+    }
+
+    if (!dbRefreshToken?.user) {
+      throw new Error("User not found");
+    }
+
+    await generateTokens(req, res, dbRefreshToken.user);
 
     return sendResponse({
       res,
       success: true,
       data: {
-        accessToken,
         accessTokenExpiresAt: new Date(Date.now() + ms(accessTokenExpiry)),
-        refreshToken,
-        refreshTokenExpiresAt: new Date(Date.now() + ms(refreshTokenExpiry)),
+        // Note: Refresh token is set in httpOnly cookie, not returned in body
       },
       message: "Token refreshed successfully",
     });
   } catch (error) {
+    // Clear cookies on any JWT error
+    res
+      .clearCookie("accessToken", accessTokenCookieOptions)
+      .clearCookie("refreshToken", refreshTokenCookieOptions);
+
     return sendResponse({
       res,
       success: false,
       error: {
         message: getErrorMessage(
           error,
-          getErrorMessage(error, "Failed to refresh token")
+          "Failed to refresh token. Please login again."
         ),
-        details: error,
       },
       statusCode: 403,
     });
@@ -256,6 +394,27 @@ export const getNewAccessToken = async (req: Request, res: Response) => {
 export const emailLogin = async (req: Request, res: Response) => {
   try {
     const { email } = req.body;
+
+    // Input validation
+    if (!email) {
+      return sendResponse({
+        res,
+        statusCode: 400,
+        success: false,
+        error: { message: "Email is required" },
+      });
+    }
+
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return sendResponse({
+        res,
+        statusCode: 400,
+        success: false,
+        error: { message: "Invalid email format" },
+      });
+    }
 
     let user = await prisma.user.findUnique({ where: { email } });
 
@@ -268,6 +427,7 @@ export const emailLogin = async (req: Request, res: Response) => {
     }
     if (!user) throw new Error("User creation failed");
 
+    // Delete any existing OTPs for this user
     await prisma.otp.deleteMany({ where: { userId: user.id } });
 
     let otp;
@@ -315,35 +475,120 @@ export const emailVerify = async (req: Request, res: Response) => {
   try {
     const { email, otp } = req.body;
 
+    // Input validation
+    if (!email || !otp) {
+      return sendResponse({
+        res,
+        statusCode: 400,
+        success: false,
+        error: { message: "Email and OTP are required" },
+      });
+    }
+
+    if (!/^\d{6}$/.test(otp)) {
+      return sendResponse({
+        res,
+        statusCode: 400,
+        success: false,
+        error: { message: "OTP must be a 6-digit number" },
+      });
+    }
+
     const user = await prisma.user.findUnique({
       where: { email },
       include: { otp: true },
     });
 
     if (!user) throw new Error("User not found");
-    if (!user.otp) throw new Error("OTP not found");
+    if (!user.otp) throw new Error("No OTP found. Please request a new one.");
 
-    const validOtp = user.otp.otp === otp && user.otp.expiresAt > new Date();
+    // Check if OTP is locked (too many failed attempts)
+    if (user.otp.lockedAt && user.otp.lockedAt > new Date()) {
+      const minutesLeft = Math.ceil(
+        (user.otp.lockedAt.getTime() - Date.now()) / (60 * 1000)
+      );
+      return sendResponse({
+        res,
+        statusCode: 429,
+        success: false,
+        error: {
+          message: `Too many failed attempts. Please try again in ${minutesLeft} minute(s) or request a new OTP.`,
+        },
+      });
+    }
+
+    // Check if OTP is expired
+    if (user.otp.expiresAt < new Date()) {
+      await prisma.otp.delete({ where: { id: user.otp.id } });
+      return sendResponse({
+        res,
+        statusCode: 400,
+        success: false,
+        error: { message: "OTP has expired. Please request a new one." },
+      });
+    }
+
+    // Verify OTP
+    const validOtp = user.otp.otp === otp;
 
     if (validOtp) {
+      // Success - delete OTP and generate tokens
       await prisma.otp.delete({ where: { id: user.otp.id } });
-
       await generateTokens(req, res, user);
 
       return sendResponse({
         res,
         success: true,
         message: "OTP verified successfully",
+        data: { user: { id: user.id, email: user.email, name: user.name } },
       });
     } else {
-      throw new Error("OTP did not match or expired !!");
+      // Failed attempt - increment counter
+      const newAttempts = user.otp.attempts + 1;
+
+      if (newAttempts >= 5) {
+        // Lock for 15 minutes after 5 failed attempts
+        await prisma.otp.update({
+          where: { id: user.otp.id },
+          data: {
+            attempts: newAttempts,
+            lockedAt: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes
+          },
+        });
+
+        return sendResponse({
+          res,
+          statusCode: 429,
+          success: false,
+          error: {
+            message:
+              "Too many failed attempts. OTP locked for 15 minutes. Please request a new OTP.",
+          },
+        });
+      } else {
+        // Increment attempt counter
+        await prisma.otp.update({
+          where: { id: user.otp.id },
+          data: { attempts: newAttempts },
+        });
+
+        const remainingAttempts = 5 - newAttempts;
+        return sendResponse({
+          res,
+          statusCode: 400,
+          success: false,
+          error: {
+            message: `Invalid OTP. ${remainingAttempts} attempt(s) remaining.`,
+          },
+        });
+      }
     }
   } catch (error) {
     return sendResponse({
       res,
       success: false,
       error: {
-        message: getErrorMessage(error, "Failed to verify email !!"),
+        message: getErrorMessage(error, "Failed to verify email"),
       },
     });
   }
@@ -439,12 +684,17 @@ export const logoutUser = async (req: Request, res: Response) => {
     const clientRefreshToken =
       req.cookies?.refreshToken || req.headers["refresh-token"];
 
-    await prisma.refreshToken.delete({
-      where: {
-        token: clientRefreshToken,
-      },
-    });
+    if (clientRefreshToken) {
+      // Delete only if token belongs to the user
+      await prisma.refreshToken.deleteMany({
+        where: {
+          token: clientRefreshToken,
+          userId: req.user.id, // Verify ownership
+        },
+      });
+    }
 
+    // Always clear cookies on logout
     res
       .clearCookie("accessToken", accessTokenCookieOptions)
       .clearCookie("refreshToken", refreshTokenCookieOptions);
@@ -455,6 +705,11 @@ export const logoutUser = async (req: Request, res: Response) => {
       message: "User logged out successfully",
     });
   } catch (error) {
+    // Even on error, clear cookies
+    res
+      .clearCookie("accessToken", accessTokenCookieOptions)
+      .clearCookie("refreshToken", refreshTokenCookieOptions);
+
     return sendResponse({
       res,
       success: false,

@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import authRouter from "./routes/auth.routes.js";
@@ -12,12 +13,20 @@ import tradingRouter from "./routes/trading.route.js";
 import indicesRouter from "./routes/indices.route.js";
 import contactRouter from "./routes/contact.routes.js";
 import adminRouter from "./routes/admin.routes.js";
+import "./utils/tokenCleanup.js"; // Start token cleanup tasks
 
 dotenv.config();
 
 const app = express();
 
 const PORT = Number(process.env.PORT) || 8080;
+
+// Security headers
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  })
+);
 
 app.use(
   cors({

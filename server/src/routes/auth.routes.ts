@@ -10,21 +10,32 @@ import {
   updateUser,
 } from "../controllers/auth.controllers.js";
 import validToken from "../middlewares/validToken.js";
+import {
+  emailLoginLimiter,
+  otpVerifyLimiter,
+  refreshLimiter,
+  generalAuthLimiter,
+  oauthLimiter,
+} from "../middlewares/rateLimiter.js";
 import express from "express";
 
 const authRouter = express.Router();
 
+// Protected routes
 authRouter.get("/user", validToken, getUser);
 authRouter.post("/user", validToken, updateUser);
 authRouter.post("/logout", validToken, logoutUser);
 
-authRouter.post("/refresh", refreshUserToken);
-authRouter.get("/refresh", getNewAccessToken);
+// Token refresh with rate limiting
+authRouter.post("/refresh", refreshLimiter, refreshUserToken);
+authRouter.get("/refresh", refreshLimiter, getNewAccessToken);
 
-authRouter.post("/email/login", emailLogin);
-authRouter.post("/email/verify", emailVerify);
+// Email auth with rate limiting
+authRouter.post("/email/login", emailLoginLimiter, emailLogin);
+authRouter.post("/email/verify", otpVerifyLimiter, emailVerify);
 
-authRouter.get("/google/url", googleAuthUrl);
-authRouter.get("/google/callback", googleAuthCallback);
+// Google OAuth with rate limiting
+authRouter.get("/google/url", generalAuthLimiter, googleAuthUrl);
+authRouter.get("/google/callback", oauthLimiter, googleAuthCallback);
 
 export default authRouter;
