@@ -89,8 +89,8 @@ export default function ContactPage() {
     {
       icon: Mail,
       title: "Email",
-      value: "support@stockslearners.com",
-      href: "mailto:support@stockslearners.com",
+      value: "contact.yashrajthakur@gmail.com",
+      href: "mailto:contact.yashrajthakur@gmail.com",
     },
     {
       icon: Phone,

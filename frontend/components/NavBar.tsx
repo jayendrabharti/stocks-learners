@@ -27,7 +27,7 @@ export default function NavBar() {
       className={cn(
         `w-full space-x-2`,
         `border-border border-b shadow-md`,
-        `sticky top-0 left-0 z-50`,
+        `sticky top-0 left-0 z-100`,
         `flex flex-row items-center py-4`,
         `bg-background transition-all duration-200`,
       )}

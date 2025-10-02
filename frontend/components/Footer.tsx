@@ -83,14 +83,27 @@ export default function Footer() {
               <p>Learn & Grow Your Skills</p>
             </div>
 
-            {/* Social Media Links */}
-            <div className="mb-6">
+            {/* Contact Information */}
+            <div className="mb-6 space-y-2">
               <Link
                 href="/contact"
-                className="text-primary mb-4 inline-block text-sm font-medium hover:underline"
+                className="text-primary block text-sm font-medium hover:underline"
               >
                 Contact Us
               </Link>
+              <div className="text-muted-foreground space-y-1 text-sm">
+                <p className="font-medium">Support & Inquiries:</p>
+                <a
+                  href="mailto:contact.yashrajthakur@gmail.com"
+                  className="hover:text-primary transition-colors"
+                >
+                  contact.yashrajthakur@gmail.com
+                </a>
+              </div>
+            </div>
+
+            {/* Social Media Links */}
+            <div className="mb-6">
               <div className="flex gap-3">
                 {socialLinks.map((social) => (
                   <a
