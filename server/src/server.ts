@@ -10,6 +10,8 @@ import profileRouter from "./routes/profile.routes.js";
 import walletRouter from "./routes/wallet.route.js";
 import tradingRouter from "./routes/trading.route.js";
 import indicesRouter from "./routes/indices.route.js";
+import contactRouter from "./routes/contact.routes.js";
+import adminRouter from "./routes/admin.routes.js";
 
 dotenv.config();
 
@@ -52,6 +54,8 @@ app.use("/profile", profileRouter);
 app.use("/wallet", walletRouter);
 app.use("/trading", tradingRouter);
 app.use("/api/indices", indicesRouter);
+app.use("/contact", contactRouter);
+app.use("/admin", adminRouter);
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Trading Server is running on port ${PORT}`);
