@@ -48,21 +48,6 @@ export default async function Footer() {
               </div>
             </div> */}
           </div>
-
-          {/* Development Team */}
-          <div className="mt-6 flex flex-row items-center justify-center gap-4 text-center">
-            <h4 className="text-muted-foreground text-sm font-medium">
-              Developed by
-            </h4>
-            <Link
-              href="https://github.com/jayendrabharti"
-              target="_blank"
-              className="bg-muted hover:bg-muted/80 hover:text-primary hover:ring-ring flex items-center gap-2 rounded-lg px-4 py-2 font-medium transition-all hover:shadow-md hover:ring-2"
-            >
-              <BsGithub size={16} />
-              Jayendra Bharti
-            </Link>
-          </div>
         </div>
       </div>
     </footer>
