@@ -191,7 +191,8 @@ export default function StockPage() {
         data: { data: instrumentData },
       } = await ApiClient.get(`/instruments/${stockId}`);
       setInstrument(instrumentData);
-    } catch {
+    } catch (error) {
+      console.error("Failed to fetch instrument data:", error);
       setError("Failed to fetch instrument data");
     }
   };

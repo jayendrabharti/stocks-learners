@@ -376,7 +376,10 @@ export default function StocksPage() {
                     </span>
                   </div>
                   <p className="text-foreground text-4xl font-bold">
-                    ₹{portfolioStats.currentValue.toLocaleString()}
+                    ₹{portfolioStats.currentValue.toLocaleString("en-IN", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
                   </p>
                   <Badge variant="secondary" className="mt-1">
                     Available Cash
@@ -394,10 +397,16 @@ export default function StocksPage() {
                     </span>
                   </div>
                   <p className="text-foreground text-3xl font-bold">
-                    ₹{portfolioStats.investedValue.toLocaleString()}
+                    ₹{portfolioStats.investedValue.toLocaleString("en-IN", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
                   </p>
                   <p className="text-muted-foreground mt-1 text-sm">
-                    Total: ₹{portfolioStats.totalValue.toLocaleString()}
+                    Total: ₹{portfolioStats.totalValue.toLocaleString("en-IN", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
                   </p>
                 </div>
 
@@ -419,7 +428,10 @@ export default function StocksPage() {
                     }`}
                   >
                     {portfolioStats.totalPnL >= 0 ? "+" : ""}₹
-                    {Math.abs(portfolioStats.totalPnL).toLocaleString()}
+                    {Math.abs(portfolioStats.totalPnL).toLocaleString("en-IN", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
                   </p>
                   <Badge
                     variant={

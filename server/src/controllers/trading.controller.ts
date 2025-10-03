@@ -5,6 +5,7 @@ import {
   updateWalletBalance,
   recalculateWalletMetrics,
 } from "./wallet.controller.js";
+import getGrowwAccessToken from "../groww/getGrowwAccessToken.js";
 
 /**
  * Buy stocks - Place a market buy order (supports CNC and MIS)
@@ -617,9 +618,88 @@ export const getPortfolio = async (
       orderBy: { currentValue: "desc" },
     });
 
+    // Helper function to convert Prisma Portfolio object to plain object with string values
+    const convertHoldingToPlainObject = (holding: any) => {
+      return {
+        id: holding.id,
+        userId: holding.userId,
+        stockSymbol: holding.stockSymbol,
+        stockName: holding.stockName,
+        exchange: holding.exchange,
+        isin: holding.isin,
+        product: holding.product,
+        quantity: holding.quantity,
+        averagePrice: holding.averagePrice.toString(),
+        totalInvested: holding.totalInvested.toString(),
+        currentPrice: holding.currentPrice.toString(),
+        currentValue: holding.currentValue.toString(),
+        unrealizedPnL: holding.unrealizedPnL.toString(),
+        unrealizedPnLPerc: holding.unrealizedPnLPerc,
+        dayChange: holding.dayChange?.toString() || "0",
+        dayChangePerc: holding.dayChangePerc || 0,
+        tradeDate: holding.tradeDate,
+        sector: holding.sector,
+        industry: holding.industry,
+        lastPriceUpdate: holding.lastPriceUpdate,
+        createdAt: holding.createdAt,
+        updatedAt: holding.updatedAt,
+      };
+    };
+
+    // Fetch live prices for all holdings
+    const accessToken = await getGrowwAccessToken();
+    
+    const holdingsWithLivePrices = await Promise.all(
+      holdings.map(async (holding) => {
+        try {
+          // Fetch live quote from Groww
+          const quoteUrl = `https://api.groww.in/v1/live-data/quote?exchange=${encodeURIComponent(
+            holding.exchange
+          )}&segment=CASH&trading_symbol=${encodeURIComponent(holding.stockSymbol)}`;
+          
+          const quoteResponse = await fetch(quoteUrl, {
+            method: "GET",
+            headers: {
+              Accept: "application/json",
+              Authorization: `Bearer ${accessToken}`,
+              "X-API-VERSION": "1.0",
+            },
+          });
+
+          if (quoteResponse.ok) {
+            const quoteData: any = await quoteResponse.json();
+            const livePrice = parseFloat(quoteData?.ltp || holding.currentPrice);
+            
+            // Calculate updated metrics with live price
+            const currentValue = new Decimal(livePrice).mul(holding.quantity);
+            const unrealizedPnL = currentValue.minus(holding.totalInvested);
+            const unrealizedPnLPerc = unrealizedPnL
+              .div(holding.totalInvested)
+              .mul(100)
+              .toNumber();
+
+            // Convert to plain object and update with live data
+            const plainHolding = convertHoldingToPlainObject(holding);
+            return {
+              ...plainHolding,
+              currentPrice: livePrice.toString(),
+              currentValue: currentValue.toString(),
+              unrealizedPnL: unrealizedPnL.toString(),
+              unrealizedPnLPerc: unrealizedPnLPerc,
+            };
+          }
+        } catch (error) {
+          console.error(`Error fetching live price for ${holding.stockSymbol}:`, error);
+        }
+        
+        // Fallback to stored values if live fetch fails
+        return convertHoldingToPlainObject(holding);
+      })
+    );
+
     // Group holdings by product type
-    const cncHoldings = holdings.filter((h) => h.product === "CNC");
-    const misHoldings = holdings.filter((h) => h.product === "MIS");
+    const cncHoldings = holdingsWithLivePrices.filter((h) => h.product === "CNC");
+    const misHoldings = holdingsWithLivePrices.filter((h) => h.product === "MIS");
 
     // Get wallet for summary
     const wallet = await prisma.wallet.findUnique({
@@ -636,26 +716,48 @@ export const getPortfolio = async (
       return tradeDate.getTime() < today.getTime();
     });
 
+    // Calculate live totals from holdings with updated prices
+    // Note: holdings now have string values, so convert back to Decimal for calculations
+    const liveTotalInvested = holdingsWithLivePrices
+      .reduce((sum, h) => sum.plus(new Decimal(h.totalInvested)), new Decimal(0));
+    
+    const liveCurrentValue = holdingsWithLivePrices
+      .reduce((sum, h) => sum.plus(new Decimal(h.currentValue)), new Decimal(0));
+    
+    const liveTotalPnL = liveCurrentValue.minus(liveTotalInvested);
+    const liveTotalPnLPercent = liveTotalInvested.isZero() 
+      ? 0 
+      : liveTotalPnL.div(liveTotalInvested).mul(100).toNumber();
+
+    // Calculate MIS specific metrics
+    const misTotalInvested = misHoldings
+      .reduce((sum, h) => sum.plus(new Decimal(h.totalInvested)), new Decimal(0));
+    
+    const misCurrentValue = misHoldings
+      .reduce((sum, h) => sum.plus(new Decimal(h.currentValue)), new Decimal(0));
+    
+    const misTotalPnL = misCurrentValue.minus(misTotalInvested);
+
     return res.status(200).json({
       success: true,
       data: {
         holdings: {
-          all: holdings,
+          all: holdingsWithLivePrices,
           cnc: cncHoldings, // Delivery holdings
           mis: misHoldings, // Intraday positions
         },
         summary: wallet
           ? {
               virtualCash: wallet.virtualCash.toString(),
-              // CNC (Delivery) metrics
-              totalInvested: wallet.totalInvested.toString(),
-              currentValue: wallet.currentValue.toString(),
-              totalPnL: wallet.totalPnL.toString(),
-              totalPnLPercent: wallet.totalPnLPercent,
-              // MIS (Intraday) metrics
-              misMarginUsed: wallet.misMarginUsed.toString(),
-              misPositionsValue: wallet.misPositionsValue.toString(),
-              misPnL: wallet.misPnL.toString(),
+              // CNC (Delivery) metrics - using LIVE data
+              totalInvested: liveTotalInvested.toString(),
+              currentValue: liveCurrentValue.toString(),
+              totalPnL: liveTotalPnL.toString(),
+              totalPnLPercent: liveTotalPnLPercent,
+              // MIS (Intraday) metrics - using LIVE data
+              misMarginUsed: misTotalInvested.toString(),
+              misPositionsValue: misCurrentValue.toString(),
+              misPnL: misTotalPnL.toString(),
               // Available balances
               availableForCNC: wallet.virtualCash.toString(),
               availableForMIS: new Decimal(wallet.virtualCash.toString())

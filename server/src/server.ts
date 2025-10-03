@@ -34,6 +34,8 @@ app.use(
       process.env.NODE_ENV === "production" && process.env.CLIENT_BASE_URL
         ? process.env.CLIENT_BASE_URL
         : (origin, callback) => {
+            // In development, allow any origin for flexibility
+            // In production, only allow CLIENT_BASE_URL
             if (!origin) return callback(null, true);
             return callback(null, origin);
           },

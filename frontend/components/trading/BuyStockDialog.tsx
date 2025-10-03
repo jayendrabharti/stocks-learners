@@ -168,13 +168,22 @@ export default function BuyStockDialog({
             <div className="flex gap-2">
               <Input
                 id="quantity"
-                type="number"
-                min="1"
-                max={maxAffordable}
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 value={quantity}
                 onChange={(e) => {
-                  const val = parseInt(e.target.value) || 1;
-                  setQuantity(Math.max(1, Math.min(val, maxAffordable)));
+                  const val = e.target.value.replace(/\D/g, ''); // Remove non-digits
+                  if (val === '') {
+                    setQuantity(0);
+                  } else {
+                    const numVal = parseInt(val);
+                    setQuantity(Math.min(numVal, maxAffordable));
+                  }
+                }}
+                onBlur={() => {
+                  // Ensure minimum of 1 when user leaves the field
+                  if (quantity === 0) setQuantity(1);
                 }}
                 className="flex-1"
               />

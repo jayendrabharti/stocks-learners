@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,40 +22,148 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import ApiClient from "@/utils/ApiClient";
+
+// Extended holding with live price data
+interface HoldingWithLivePrice extends PortfolioHolding {
+  livePrice?: number;
+  livePnL?: number;
+  livePnLPercent?: number;
+  liveCurrentValue?: number;
+}
 
 export default function PortfolioPage() {
-  const [allHoldings, setAllHoldings] = useState<PortfolioHolding[]>([]);
-  const [cncHoldings, setCncHoldings] = useState<PortfolioHolding[]>([]);
-  const [misHoldings, setMisHoldings] = useState<PortfolioHolding[]>([]);
+  const [allHoldings, setAllHoldings] = useState<HoldingWithLivePrice[]>([]);
+  const [cncHoldings, setCncHoldings] = useState<HoldingWithLivePrice[]>([]);
+  const [misHoldings, setMisHoldings] = useState<HoldingWithLivePrice[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [fetchingLivePrices, setFetchingLivePrices] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<any>(null);
   const [selectedHolding, setSelectedHolding] =
-    useState<PortfolioHolding | null>(null);
+    useState<HoldingWithLivePrice | null>(null);
   const [showSellDialog, setShowSellDialog] = useState(false);
   const [activeTab, setActiveTab] = useState<"all" | "cnc" | "mis">("all");
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   const { summary, loading: walletLoading } = useWallet();
+
+  // Fetch live price for a single stock
+  const fetchLivePrice = async (
+    stockSymbol: string,
+    exchange: string
+  ): Promise<number | null> => {
+    try {
+      const response = await ApiClient.get(
+        `/instruments/live-data?exchange=${exchange}&trading_symbol=${stockSymbol}`
+      );
+
+      if (response.data.success && response.data.quoteData?.payload?.last_price) {
+        return response.data.quoteData.payload.last_price;
+      }
+      return null;
+    } catch (error) {
+      console.error(`Failed to fetch live price for ${stockSymbol}:`, error);
+      return null;
+    }
+  };
+
+  // Fetch live prices for all holdings and calculate P&L
+  const fetchLivePricesForHoldings = useCallback(
+    async (holdings: PortfolioHolding[]): Promise<HoldingWithLivePrice[]> => {
+      const holdingsWithLivePrices = await Promise.all(
+        holdings.map(async (holding) => {
+          const livePrice = await fetchLivePrice(
+            holding.stockSymbol,
+            holding.exchange
+          );
+
+          if (livePrice) {
+            // Calculate P&L with live price
+            const avgPrice = parseFloat(holding.averagePrice);
+            const totalInvested = parseFloat(holding.totalInvested);
+            const liveCurrentValue = livePrice * holding.quantity;
+            const livePnL = liveCurrentValue - totalInvested;
+            const livePnLPercent = (livePnL / totalInvested) * 100;
+
+            return {
+              ...holding,
+              livePrice,
+              liveCurrentValue,
+              livePnL,
+              livePnLPercent,
+            };
+          }
+
+          // Fallback to stored values if live price fetch fails
+          return {
+            ...holding,
+            livePrice: parseFloat(holding.currentPrice || "0"),
+            liveCurrentValue: parseFloat(holding.currentValue || "0"),
+            livePnL: parseFloat(holding.unrealizedPnL || "0"),
+            livePnLPercent: holding.unrealizedPnLPerc || 0,
+          };
+        })
+      );
+
+      return holdingsWithLivePrices;
+    },
+    []
+  );
 
   useEffect(() => {
     fetchPortfolio();
   }, []);
 
+  // Auto-refresh live prices every 5 seconds
+  useEffect(() => {
+    if (allHoldings.length === 0) return;
+
+    const interval = setInterval(() => {
+      refreshLivePrices();
+    }, 5000); // Refresh every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [allHoldings.length]);
+
   const fetchPortfolio = async () => {
     try {
       setLoading(true);
       const data = await getPortfolio();
-      setAllHoldings(data.holdings.all);
-      setCncHoldings(data.holdings.cnc);
-      setMisHoldings(data.holdings.mis);
+      
+      // Fetch live prices immediately after getting portfolio
+      const holdingsWithLive = await fetchLivePricesForHoldings(data.holdings.all);
+      
+      setAllHoldings(holdingsWithLive);
+      setCncHoldings(holdingsWithLive.filter((h) => h.product === "CNC"));
+      setMisHoldings(holdingsWithLive.filter((h) => h.product === "MIS"));
       setWarnings(data.warnings);
       setError(null);
+      setLastUpdated(new Date());
     } catch (err) {
       console.error("Error fetching portfolio:", err);
       setError("Failed to load portfolio");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const refreshLivePrices = async () => {
+    if (fetchingLivePrices || allHoldings.length === 0) return;
+
+    try {
+      setFetchingLivePrices(true);
+      const holdingsWithLive = await fetchLivePricesForHoldings(allHoldings);
+      
+      setAllHoldings(holdingsWithLive);
+      setCncHoldings(holdingsWithLive.filter((h) => h.product === "CNC"));
+      setMisHoldings(holdingsWithLive.filter((h) => h.product === "MIS"));
+      setLastUpdated(new Date());
+    } catch (error) {
+      console.error("Error refreshing live prices:", error);
+    } finally {
+      setFetchingLivePrices(false);
     }
   };
 
@@ -82,8 +190,8 @@ export default function PortfolioPage() {
     return new Intl.NumberFormat("en-IN", {
       style: "currency",
       currency: "INR",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     }).format(numValue);
   };
 
@@ -122,11 +230,25 @@ export default function PortfolioPage() {
     );
   }
 
-  const totalInvested = parseFloat(summary?.totalInvested || "0");
-  const currentValue = parseFloat(summary?.currentValue || "0");
-  const totalPnL = parseFloat(summary?.totalPnL || "0");
-  const totalPnLPercent = summary?.totalPnLPercent || 0;
-  const isPnLPositive = totalPnL >= 0;
+  // Calculate summary from live holdings data
+  const liveTotalInvested = allHoldings.reduce(
+    (sum, h) => sum + parseFloat(h.totalInvested),
+    0
+  );
+  const liveCurrentValue = allHoldings.reduce(
+    (sum, h) => sum + (h.liveCurrentValue || 0),
+    0
+  );
+  const liveTotalPnL = liveCurrentValue - liveTotalInvested;
+  const liveTotalPnLPercent =
+    liveTotalInvested > 0 ? (liveTotalPnL / liveTotalInvested) * 100 : 0;
+  const isPnLPositive = liveTotalPnL >= 0;
+
+  // Use live calculations instead of backend summary
+  const totalInvested = liveTotalInvested;
+  const currentValue = liveCurrentValue;
+  const totalPnL = liveTotalPnL;
+  const totalPnLPercent = liveTotalPnLPercent;
 
   // Get the current holdings based on active tab
   const displayHoldings =
@@ -145,6 +267,14 @@ export default function PortfolioPage() {
           <p className="text-muted-foreground">
             Track your investments and performance
           </p>
+          {lastUpdated && (
+            <p className="text-muted-foreground text-xs mt-1">
+              Last updated: {lastUpdated.toLocaleTimeString("en-IN")}
+              {fetchingLivePrices && (
+                <span className="ml-2 animate-pulse">● Updating...</span>
+              )}
+            </p>
+          )}
         </div>
         <Button
           variant="outline"
@@ -352,8 +482,11 @@ export default function PortfolioPage() {
                 </thead>
                 <tbody>
                   {displayHoldings.map((holding) => {
-                    const pnl = parseFloat(holding.unrealizedPnL);
-                    const pnlPercent = holding.unrealizedPnLPerc;
+                    // Use live P&L if available, fallback to stored values
+                    const pnl = holding.livePnL ?? parseFloat(holding.unrealizedPnL || "0");
+                    const pnlPercent = holding.livePnLPercent ?? holding.unrealizedPnLPerc ?? 0;
+                    const currentPrice = holding.livePrice ?? parseFloat(holding.currentPrice || "0");
+                    const currentValue = holding.liveCurrentValue ?? parseFloat(holding.currentValue || "0");
                     const isProfitable = pnl >= 0;
 
                     return (
@@ -396,13 +529,13 @@ export default function PortfolioPage() {
                           {formatCurrency(holding.averagePrice)}
                         </td>
                         <td className="px-4 py-3 text-right">
-                          {formatCurrency(holding.currentPrice)}
+                          {formatCurrency(currentPrice)}
                         </td>
                         <td className="px-4 py-3 text-right">
                           {formatCurrency(holding.totalInvested)}
                         </td>
                         <td className="px-4 py-3 text-right">
-                          {formatCurrency(holding.currentValue)}
+                          {formatCurrency(currentValue)}
                         </td>
                         <td className="px-4 py-3 text-right">
                           <div
@@ -456,7 +589,7 @@ export default function PortfolioPage() {
             symbol: selectedHolding.stockSymbol,
             name: selectedHolding.stockName,
             exchange: selectedHolding.exchange,
-            currentPrice: parseFloat(selectedHolding.currentPrice),
+            currentPrice: selectedHolding.livePrice ?? parseFloat(selectedHolding.currentPrice || "0"),
             isin: selectedHolding.isin,
           }}
           holding={{

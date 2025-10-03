@@ -36,6 +36,13 @@ ApiClient.interceptors.response.use(
   },
   async (error) => {
     const originalRequest = error.config;
+
+    console.log("❌ [ApiClient] Request failed:", {
+      url: originalRequest?.url,
+      status: error.response?.status,
+      message: error.message,
+    });
+
     const isAuthEndpoint = authEndpoints.some((endpoint) =>
       originalRequest.url.includes(endpoint),
     );
@@ -45,7 +52,11 @@ ApiClient.interceptors.response.use(
       !isAuthEndpoint &&
       !originalRequest._retry
     ) {
+      console.log("🔄 [ApiClient] Got 401 error, attempting refresh...");
+      console.log("🔍 [ApiClient] Original request:", originalRequest.url);
+
       if (isRefreshing) {
+        console.log("⏳ [ApiClient] Already refreshing, queueing request...");
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject, originalRequest });
         }).catch((err) => {
@@ -57,12 +68,34 @@ ApiClient.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        await ApiClient.post("/auth/refresh");
+        console.log("🔑 [ApiClient] Calling /auth/refresh...");
+        const refreshResponse = await ApiClient.post("/auth/refresh");
+        console.log("✅ [ApiClient] Refresh successful:", refreshResponse.data);
 
         processQueue(null);
+        console.log(
+          "🔄 [ApiClient] Retrying original request:",
+          originalRequest.url,
+        );
         return ApiClient(originalRequest);
-      } catch (refreshError) {
+      } catch (refreshError: any) {
+        console.error(
+          "❌ [ApiClient] Refresh failed:",
+          refreshError.response?.data || refreshError.message,
+        );
+        console.error("❌ [ApiClient] Refresh error details:", {
+          status: refreshError.response?.status,
+          statusText: refreshError.response?.statusText,
+          data: refreshError.response?.data,
+        });
         processQueue(refreshError);
+
+        // Redirect to login if refresh fails
+        if (typeof window !== "undefined") {
+          console.log("🚪 [ApiClient] Redirecting to login...");
+          window.location.href = "/login";
+        }
+
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

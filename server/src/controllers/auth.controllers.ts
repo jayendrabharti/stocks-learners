@@ -221,7 +221,12 @@ export const refreshUserToken = async (req: Request, res: Response) => {
     ) as RefreshTokenPayload;
 
     const dbRefreshToken = await prisma.refreshToken.findUnique({
-      where: { userId: userId, token: clientRefreshToken },
+      where: {
+        userId_token: {
+          userId: userId,
+          token: clientRefreshToken,
+        },
+      },
       include: { user: true },
     });
 

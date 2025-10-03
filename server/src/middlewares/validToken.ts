@@ -37,8 +37,8 @@ export default async function validToken(
     });
 
     if (!user) {
-      // User deleted but token still exists - clear cookies
-      res.clearCookie("accessToken", accessTokenCookieOptions);
+      // User deleted but token still exists - don't clear cookie here
+      // Let the refresh mechanism handle it
       return res.status(401).json({
         success: false,
         error: { message: "User not found. Please login again." },
@@ -50,10 +50,12 @@ export default async function validToken(
   } catch (err) {
     // Handle JWT errors (expired, invalid, etc.)
     if (err instanceof jwt.JsonWebTokenError) {
-      // Clear invalid token
-      res.clearCookie("accessToken", accessTokenCookieOptions);
+      // CRITICAL FIX: Don't clear cookie on TokenExpiredError
+      // The frontend ApiClient needs the cookie to exist for the refresh flow to work
+      // Only clear cookie for truly invalid tokens (malformed, wrong signature)
 
       if (err instanceof jwt.TokenExpiredError) {
+        // Don't clear cookie - just return 401 so ApiClient can refresh
         return res.status(401).json({
           success: false,
           error: {
@@ -62,6 +64,9 @@ export default async function validToken(
           },
         });
       }
+
+      // Only clear cookie for invalid/malformed tokens
+      res.clearCookie("accessToken", accessTokenCookieOptions);
 
       return res.status(401).json({
         success: false,
