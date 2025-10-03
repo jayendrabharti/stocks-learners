@@ -199,10 +199,10 @@ export const getPortfolio = async (): Promise<PortfolioResponse> => {
 export const getPurchaseLots = async (
   stockSymbol: string,
   exchange: string,
-  product: ProductType
+  product: ProductType,
 ): Promise<PurchaseLotsResponse> => {
   const response = await ApiClient.get(
-    `/trading/purchase-lots/${stockSymbol}/${exchange}/${product}`
+    `/trading/purchase-lots/${stockSymbol}/${exchange}/${product}`,
   );
   return response.data.data;
 };

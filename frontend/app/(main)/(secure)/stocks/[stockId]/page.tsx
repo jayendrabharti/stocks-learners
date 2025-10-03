@@ -24,6 +24,8 @@ import {
   RefreshCw,
   TrendingUp,
   Calendar,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { WatchlistButton } from "@/components/trading/WatchlistButton";
 import {
@@ -35,6 +37,8 @@ import {
   getPortfolio,
   PortfolioHolding,
   PortfolioResponse,
+  getPurchaseLots,
+  PurchaseLot,
 } from "@/services/tradingApi";
 import {
   LineChart,
@@ -184,6 +188,11 @@ export default function StockPage() {
   // Portfolio state
   const [portfolio, setPortfolio] = useState<PortfolioResponse | null>(null);
   const [portfolioLoading, setPortfolioLoading] = useState(true);
+
+  // Purchase lots state (for expandable holdings)
+  const [lotsExpanded, setLotsExpanded] = useState(false);
+  const [purchaseLots, setPurchaseLots] = useState<PurchaseLot[]>([]);
+  const [lotsLoading, setLotsLoading] = useState(false);
 
   const fetchInstrumentData = async () => {
     try {
@@ -386,6 +395,37 @@ export default function StockPage() {
 
     fetchPortfolioData();
   }, []);
+
+  // Function to toggle and fetch purchase lots
+  const togglePurchaseLots = async () => {
+    const newExpandedState = !lotsExpanded;
+    setLotsExpanded(newExpandedState);
+
+    // If expanding and lots not yet loaded, fetch them
+    if (newExpandedState && purchaseLots.length === 0 && instrument) {
+      try {
+        setLotsLoading(true);
+
+        // Get the first holding for this stock (to determine product type)
+        const holding = portfolio?.holdings.all.find(
+          (h) => h.stockSymbol === instrument.trading_symbol,
+        );
+
+        if (holding) {
+          const lotsData = await getPurchaseLots(
+            holding.stockSymbol,
+            holding.exchange,
+            holding.product,
+          );
+          setPurchaseLots(lotsData.purchaseLots);
+        }
+      } catch (error) {
+        console.error("Failed to fetch purchase lots:", error);
+      } finally {
+        setLotsLoading(false);
+      }
+    }
+  };
 
   useEffect(() => {
     if (instrument) {
@@ -1592,6 +1632,109 @@ export default function StockPage() {
                             ))}
                           </div>
                         )}
+
+                        {/* Purchase Lots Section */}
+                        <div className="mt-3 border-t pt-3">
+                          <button
+                            onClick={togglePurchaseLots}
+                            className="hover:text-primary flex w-full items-center justify-between text-sm font-medium transition-colors"
+                          >
+                            <span>Purchase History</span>
+                            {lotsExpanded ? (
+                              <ChevronDown className="h-4 w-4" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4" />
+                            )}
+                          </button>
+
+                          {lotsExpanded && (
+                            <div className="mt-3">
+                              {lotsLoading ? (
+                                <div className="flex items-center justify-center py-4">
+                                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                                  <span className="text-muted-foreground text-xs">
+                                    Loading...
+                                  </span>
+                                </div>
+                              ) : purchaseLots.length > 0 ? (
+                                <div className="space-y-2">
+                                  {purchaseLots.map((lot) => {
+                                    // Recalculate with live price
+                                    const lotCurrentValue =
+                                      currentPrice * lot.quantity;
+                                    const lotInvested = parseFloat(
+                                      lot.totalInvested,
+                                    );
+                                    const lotPnl =
+                                      lotCurrentValue - lotInvested;
+                                    const lotPnlPercent =
+                                      lotInvested > 0
+                                        ? (lotPnl / lotInvested) * 100
+                                        : 0;
+                                    const isLotProfitable = lotPnl >= 0;
+
+                                    return (
+                                      <div
+                                        key={lot.id}
+                                        className="rounded-lg border p-2 text-xs"
+                                      >
+                                        <div className="mb-1 flex justify-between">
+                                          <span className="text-muted-foreground">
+                                            {new Date(
+                                              lot.purchaseDate,
+                                            ).toLocaleDateString("en-IN", {
+                                              day: "2-digit",
+                                              month: "short",
+                                              hour: "2-digit",
+                                              minute: "2-digit",
+                                            })}
+                                          </span>
+                                          <span className="font-medium">
+                                            {lot.quantity} @{" "}
+                                            {formatCurrency(
+                                              parseFloat(lot.purchasePrice),
+                                            )}
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-muted-foreground">
+                                            P&L:
+                                          </span>
+                                          <div className="text-right">
+                                            <div
+                                              className={`font-semibold ${
+                                                isLotProfitable
+                                                  ? "text-green-600"
+                                                  : "text-red-600"
+                                              }`}
+                                            >
+                                              {isLotProfitable ? "+" : ""}
+                                              {formatCurrency(lotPnl)}
+                                            </div>
+                                            <div
+                                              className={`text-xs ${
+                                                isLotProfitable
+                                                  ? "text-green-600"
+                                                  : "text-red-600"
+                                              }`}
+                                            >
+                                              ({isLotProfitable ? "+" : ""}
+                                              {lotPnlPercent.toFixed(2)}%)
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              ) : (
+                                <p className="text-muted-foreground py-2 text-center text-xs">
+                                  No purchase history found
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </>
                     );
                   })()}

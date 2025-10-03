@@ -4,7 +4,12 @@ import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getPortfolio, PortfolioHolding, getPurchaseLots, PurchaseLot } from "@/services/tradingApi";
+import {
+  getPortfolio,
+  PortfolioHolding,
+  getPurchaseLots,
+  PurchaseLot,
+} from "@/services/tradingApi";
 import { useWallet } from "@/hooks/useWallet";
 import {
   SellStockDialog,
@@ -51,10 +56,14 @@ export default function PortfolioPage() {
   const [showSellDialog, setShowSellDialog] = useState(false);
   const [activeTab, setActiveTab] = useState<"all" | "cnc" | "mis">("all");
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  
+
   // Separate state for expansion - keyed by holding ID
-  const [expandedHoldings, setExpandedHoldings] = useState<Record<string, boolean>>({});
-  const [purchaseLotsCache, setPurchaseLotsCache] = useState<Record<string, PurchaseLot[]>>({});
+  const [expandedHoldings, setExpandedHoldings] = useState<
+    Record<string, boolean>
+  >({});
+  const [purchaseLotsCache, setPurchaseLotsCache] = useState<
+    Record<string, PurchaseLot[]>
+  >({});
   const [lotsLoading, setLotsLoading] = useState<Record<string, boolean>>({});
 
   const { summary, loading: walletLoading } = useWallet();
@@ -205,9 +214,9 @@ export default function PortfolioPage() {
   const toggleExpanded = async (holding: HoldingWithLivePrice) => {
     const isCurrentlyExpanded = expandedHoldings[holding.id] || false;
     const newExpandedState = !isCurrentlyExpanded;
-    
+
     // Update expansion state
-    setExpandedHoldings(prev => ({
+    setExpandedHoldings((prev) => ({
       ...prev,
       [holding.id]: newExpandedState,
     }));
@@ -222,24 +231,24 @@ export default function PortfolioPage() {
   const fetchPurchaseLots = async (holding: HoldingWithLivePrice) => {
     try {
       // Mark as loading
-      setLotsLoading(prev => ({ ...prev, [holding.id]: true }));
+      setLotsLoading((prev) => ({ ...prev, [holding.id]: true }));
 
       const lotsData = await getPurchaseLots(
         holding.stockSymbol,
         holding.exchange,
-        holding.product
+        holding.product,
       );
 
       // Cache the lots
-      setPurchaseLotsCache(prev => ({
+      setPurchaseLotsCache((prev) => ({
         ...prev,
         [holding.id]: lotsData.purchaseLots,
       }));
-      
-      setLotsLoading(prev => ({ ...prev, [holding.id]: false }));
+
+      setLotsLoading((prev) => ({ ...prev, [holding.id]: false }));
     } catch (error) {
       console.error("Error fetching purchase lots:", error);
-      setLotsLoading(prev => ({ ...prev, [holding.id]: false }));
+      setLotsLoading((prev) => ({ ...prev, [holding.id]: false }));
     }
   };
 
@@ -623,7 +632,9 @@ export default function PortfolioPage() {
                             <div
                               className={cn(
                                 "font-medium",
-                                isProfitable ? "text-green-600" : "text-red-600",
+                                isProfitable
+                                  ? "text-green-600"
+                                  : "text-red-600",
                               )}
                             >
                               {isProfitable ? "+" : ""}
@@ -632,7 +643,9 @@ export default function PortfolioPage() {
                             <div
                               className={cn(
                                 "text-xs",
-                                isProfitable ? "text-green-600" : "text-red-600",
+                                isProfitable
+                                  ? "text-green-600"
+                                  : "text-red-600",
                               )}
                             >
                               {isProfitable ? "+" : ""}
@@ -657,74 +670,136 @@ export default function PortfolioPage() {
                             <td colSpan={9} className="px-4 py-3">
                               {lotsLoading[holding.id] ? (
                                 <div className="flex items-center justify-center py-4">
-                                  <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-                                  <span className="text-sm text-muted-foreground">
+                                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                                  <span className="text-muted-foreground text-sm">
                                     Loading purchase history...
                                   </span>
                                 </div>
-                              ) : purchaseLotsCache[holding.id] && purchaseLotsCache[holding.id].length > 0 ? (
+                              ) : purchaseLotsCache[holding.id] &&
+                                purchaseLotsCache[holding.id].length > 0 ? (
                                 <div className="ml-8">
-                                  <h4 className="text-sm font-semibold mb-2 text-muted-foreground">
-                                    Purchase History ({purchaseLotsCache[holding.id].length} {purchaseLotsCache[holding.id].length === 1 ? 'lot' : 'lots'})
+                                  <h4 className="text-muted-foreground mb-2 text-sm font-semibold">
+                                    Purchase History (
+                                    {purchaseLotsCache[holding.id].length}{" "}
+                                    {purchaseLotsCache[holding.id].length === 1
+                                      ? "lot"
+                                      : "lots"}
+                                    )
                                   </h4>
                                   <table className="w-full text-sm">
                                     <thead>
-                                      <tr className="border-b border-border/50">
-                                        <th className="py-2 text-left font-medium text-muted-foreground">Date</th>
-                                        <th className="py-2 text-right font-medium text-muted-foreground">Qty</th>
-                                        <th className="py-2 text-right font-medium text-muted-foreground">Purchase Price</th>
-                                        <th className="py-2 text-right font-medium text-muted-foreground">Invested</th>
-                                        <th className="py-2 text-right font-medium text-muted-foreground">Current Value</th>
-                                        <th className="py-2 text-right font-medium text-muted-foreground">P&L</th>
+                                      <tr className="border-border/50 border-b">
+                                        <th className="text-muted-foreground py-2 text-left font-medium">
+                                          Date
+                                        </th>
+                                        <th className="text-muted-foreground py-2 text-right font-medium">
+                                          Qty
+                                        </th>
+                                        <th className="text-muted-foreground py-2 text-right font-medium">
+                                          Purchase Price
+                                        </th>
+                                        <th className="text-muted-foreground py-2 text-right font-medium">
+                                          Invested
+                                        </th>
+                                        <th className="text-muted-foreground py-2 text-right font-medium">
+                                          Current Value
+                                        </th>
+                                        <th className="text-muted-foreground py-2 text-right font-medium">
+                                          P&L
+                                        </th>
                                       </tr>
                                     </thead>
                                     <tbody>
-                                      {purchaseLotsCache[holding.id].map((lot) => {
-                                        // Recalculate with LIVE price from main holding
-                                        const liveCurrentPrice = holding.livePrice ?? parseFloat(holding.currentPrice);
-                                        const lotCurrentValue = liveCurrentPrice * lot.quantity;
-                                        const lotInvested = parseFloat(lot.totalInvested);
-                                        const lotPnl = lotCurrentValue - lotInvested;
-                                        const lotPnlPercent = lotInvested > 0 ? (lotPnl / lotInvested) * 100 : 0;
-                                        const isLotProfitable = lotPnl >= 0;
+                                      {purchaseLotsCache[holding.id].map(
+                                        (lot) => {
+                                          // Recalculate with LIVE price from main holding
+                                          const liveCurrentPrice =
+                                            holding.livePrice ??
+                                            parseFloat(holding.currentPrice);
+                                          const lotCurrentValue =
+                                            liveCurrentPrice * lot.quantity;
+                                          const lotInvested = parseFloat(
+                                            lot.totalInvested,
+                                          );
+                                          const lotPnl =
+                                            lotCurrentValue - lotInvested;
+                                          const lotPnlPercent =
+                                            lotInvested > 0
+                                              ? (lotPnl / lotInvested) * 100
+                                              : 0;
+                                          const isLotProfitable = lotPnl >= 0;
 
-                                        return (
-                                          <tr key={lot.id} className="border-b border-border/30">
-                                            <td className="py-2 text-left text-muted-foreground">
-                                              {new Date(lot.purchaseDate).toLocaleDateString('en-IN', {
-                                                day: '2-digit',
-                                                month: 'short',
-                                                year: 'numeric',
-                                                hour: '2-digit',
-                                                minute: '2-digit',
-                                              })}
-                                            </td>
-                                            <td className="py-2 text-right">{lot.quantity}</td>
-                                            <td className="py-2 text-right">{formatCurrency(lot.purchasePrice)}</td>
-                                            <td className="py-2 text-right">{formatCurrency(lot.totalInvested)}</td>
-                                            <td className="py-2 text-right">{formatCurrency(lotCurrentValue)}</td>
-                                            <td className="py-2 text-right">
-                                              <div className={cn(
-                                                "font-medium",
-                                                isLotProfitable ? "text-green-600" : "text-red-600"
-                                              )}>
-                                                {isLotProfitable ? "+" : ""}{formatCurrency(lotPnl)}
-                                              </div>
-                                              <div className={cn(
-                                                "text-xs",
-                                                isLotProfitable ? "text-green-600" : "text-red-600"
-                                              )}>
-                                                {isLotProfitable ? "+" : ""}{formatDecimal(lotPnlPercent, 2)}%
-                                              </div>
-                                            </td>
-                                          </tr>
-                                        );
-                                      })}
+                                          return (
+                                            <tr
+                                              key={lot.id}
+                                              className="border-border/30 border-b"
+                                            >
+                                              <td className="text-muted-foreground py-2 text-left">
+                                                {new Date(
+                                                  lot.purchaseDate,
+                                                ).toLocaleDateString("en-IN", {
+                                                  day: "2-digit",
+                                                  month: "short",
+                                                  year: "numeric",
+                                                  hour: "2-digit",
+                                                  minute: "2-digit",
+                                                })}
+                                              </td>
+                                              <td className="py-2 text-right">
+                                                {lot.quantity}
+                                              </td>
+                                              <td className="py-2 text-right">
+                                                {formatCurrency(
+                                                  lot.purchasePrice,
+                                                )}
+                                              </td>
+                                              <td className="py-2 text-right">
+                                                {formatCurrency(
+                                                  lot.totalInvested,
+                                                )}
+                                              </td>
+                                              <td className="py-2 text-right">
+                                                {formatCurrency(
+                                                  lotCurrentValue,
+                                                )}
+                                              </td>
+                                              <td className="py-2 text-right">
+                                                <div
+                                                  className={cn(
+                                                    "font-medium",
+                                                    isLotProfitable
+                                                      ? "text-green-600"
+                                                      : "text-red-600",
+                                                  )}
+                                                >
+                                                  {isLotProfitable ? "+" : ""}
+                                                  {formatCurrency(lotPnl)}
+                                                </div>
+                                                <div
+                                                  className={cn(
+                                                    "text-xs",
+                                                    isLotProfitable
+                                                      ? "text-green-600"
+                                                      : "text-red-600",
+                                                  )}
+                                                >
+                                                  {isLotProfitable ? "+" : ""}
+                                                  {formatDecimal(
+                                                    lotPnlPercent,
+                                                    2,
+                                                  )}
+                                                  %
+                                                </div>
+                                              </td>
+                                            </tr>
+                                          );
+                                        },
+                                      )}
                                     </tbody>
                                   </table>
                                 </div>
                               ) : (
-                                <div className="text-sm text-muted-foreground text-center py-2">
+                                <div className="text-muted-foreground py-2 text-center text-sm">
                                   No purchase history found
                                 </div>
                               )}

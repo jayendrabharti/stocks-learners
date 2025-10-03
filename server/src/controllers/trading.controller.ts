@@ -880,21 +880,27 @@ export const getPurchaseLots = async (req: Request, res: Response) => {
         const quoteData: any = await quoteResponse.json();
         // Use the same field as portfolio: quoteData?.ltp
         currentPrice = parseFloat(quoteData?.ltp || holding.currentPrice);
-        
-        console.log(`[getPurchaseLots] ${stockSymbol} - Live price fetched: ₹${currentPrice}`);
+
+        console.log(
+          `[getPurchaseLots] ${stockSymbol} - Live price fetched: ₹${currentPrice}`
+        );
         console.log(`[getPurchaseLots] API Response ltp:`, quoteData?.ltp);
       } else {
         // Fallback to holding's price if API fails
         currentPrice = parseFloat(holding.currentPrice.toString());
-        console.warn(`[getPurchaseLots] ${stockSymbol} - API failed, using DB price: ₹${currentPrice}`);
+        console.warn(
+          `[getPurchaseLots] ${stockSymbol} - API failed, using DB price: ₹${currentPrice}`
+        );
       }
     } catch (error) {
       console.error(`Error fetching live price for ${stockSymbol}:`, error);
       // Fallback to holding's price
       currentPrice = parseFloat(holding.currentPrice.toString());
     }
-    
-    console.log(`[getPurchaseLots] ${stockSymbol} - Final currentPrice used for calculations: ₹${currentPrice}`);
+
+    console.log(
+      `[getPurchaseLots] ${stockSymbol} - Final currentPrice used for calculations: ₹${currentPrice}`
+    );
 
     // Fetch all BUY transactions for this stock (excluding SELLs)
     const buyTransactions = await prisma.transaction.findMany({
@@ -931,7 +937,9 @@ export const getPurchaseLots = async (req: Request, res: Response) => {
       const pnl = currentValue - invested;
       const pnlPercent = invested > 0 ? (pnl / invested) * 100 : 0;
 
-      console.log(`[getPurchaseLots] Lot calc - Qty: ${quantity}, CurrentPrice: ${currentPrice}, CurrentValue: ${currentValue}, Invested: ${invested}, PnL: ${pnl}`);
+      console.log(
+        `[getPurchaseLots] Lot calc - Qty: ${quantity}, CurrentPrice: ${currentPrice}, CurrentValue: ${currentValue}, Invested: ${invested}, PnL: ${pnl}`
+      );
 
       return {
         id: transaction.id,
@@ -952,7 +960,10 @@ export const getPurchaseLots = async (req: Request, res: Response) => {
     });
 
     // Calculate totals
-    const totalQuantity = purchaseLots.reduce((sum, lot) => sum + lot.quantity, 0);
+    const totalQuantity = purchaseLots.reduce(
+      (sum, lot) => sum + lot.quantity,
+      0
+    );
     const totalInvested = purchaseLots.reduce(
       (sum, lot) => sum + parseFloat(lot.totalInvested),
       0
@@ -962,7 +973,8 @@ export const getPurchaseLots = async (req: Request, res: Response) => {
       0
     );
     const totalPnL = totalCurrentValue - totalInvested;
-    const totalPnLPercent = totalInvested > 0 ? (totalPnL / totalInvested) * 100 : 0;
+    const totalPnLPercent =
+      totalInvested > 0 ? (totalPnL / totalInvested) * 100 : 0;
     const averagePrice = totalQuantity > 0 ? totalInvested / totalQuantity : 0;
 
     return res.status(200).json({
@@ -992,4 +1004,3 @@ export const getPurchaseLots = async (req: Request, res: Response) => {
     });
   }
 };
-
