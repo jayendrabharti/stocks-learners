@@ -18,12 +18,13 @@ import {
   TrendingUp,
   TrendingDown,
 } from "lucide-react";
-import { Separator } from "../ui/separator";
-import { Button } from "../ui/button";
+import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
 import { useSession } from "@/providers/SessionProvider";
 import { useWallet } from "@/hooks/useWallet";
+import { usePortfolio } from "@/providers/PortfolioProvider";
 import { motion, AnimatePresence } from "motion/react";
-import { Skeleton } from "../ui/skeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function UserButton({
   className = "",
@@ -36,6 +37,7 @@ export default function UserButton({
 }) {
   const { user, status } = useSession();
   const { summary, loading: walletLoading } = useWallet();
+  const { portfolioStats, loading: portfolioLoading } = usePortfolio();
 
   // Format currency in Indian style (₹1,00,000.00)
   const formatIndianCurrency = (value: number, currency: string = "INR") => {
@@ -74,9 +76,9 @@ export default function UserButton({
                 <AvatarFallback>{initials}</AvatarFallback>
               </Avatar>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-72">
+            <DropdownMenuContent align="end" className="z-[200] w-72">
               {/* Wallet Section */}
-              {walletLoading ? (
+              {walletLoading || portfolioLoading ? (
                 <div className="space-y-2 px-3 py-3">
                   <div className="flex items-center justify-between">
                     <Skeleton className="h-4 w-20" />
@@ -107,48 +109,56 @@ export default function UserButton({
                         )}
                       </span>
                     </div>
-                    {parseFloat(summary.totalPnL) !== 0 && (
+                    {portfolioStats.totalPnL !== 0 && (
                       <div
                         className={cn(
-                          "flex items-center gap-1 text-xs font-medium",
-                          parseFloat(summary.totalPnL) >= 0
+                          "flex flex-col items-end gap-0.5 text-xs font-medium",
+                          portfolioStats.totalPnL >= 0
                             ? "text-green-600 dark:text-green-400"
                             : "text-red-600 dark:text-red-400",
                         )}
                       >
-                        {parseFloat(summary.totalPnL) >= 0 ? (
-                          <TrendingUp className="h-3 w-3" />
-                        ) : (
-                          <TrendingDown className="h-3 w-3" />
-                        )}
-                        <span>
-                          {parseFloat(summary.totalPnL) >= 0 ? "+" : ""}
-                          {summary.totalPnLPercent.toFixed(2)}%
+                        <div className="flex items-center gap-1">
+                          {portfolioStats.totalPnL >= 0 ? (
+                            <TrendingUp className="h-3 w-3" />
+                          ) : (
+                            <TrendingDown className="h-3 w-3" />
+                          )}
+                          <span>
+                            {portfolioStats.totalPnL >= 0 ? "+" : "-"}
+                            {formatIndianCurrency(
+                              Math.abs(portfolioStats.totalPnL),
+                              summary.currency,
+                            )}
+                          </span>
+                        </div>
+                        <span className="text-[10px]">
+                          ({portfolioStats.totalPnL >= 0 ? "+" : ""}
+                          {portfolioStats.totalPnLPercent.toFixed(2)}%)
                         </span>
                       </div>
                     )}
                   </div>
 
                   {/* Investment Summary */}
-                  {summary.totalInvested &&
-                    parseFloat(summary.totalInvested) > 0 && (
-                      <div className="text-muted-foreground flex items-center justify-between text-xs">
-                        <span>
-                          Invested:{" "}
-                          {formatIndianCurrency(
-                            parseFloat(summary.totalInvested),
-                            summary.currency,
-                          )}
-                        </span>
-                        <span>
-                          Current:{" "}
-                          {formatIndianCurrency(
-                            parseFloat(summary.currentValue),
-                            summary.currency,
-                          )}
-                        </span>
-                      </div>
-                    )}
+                  {portfolioStats.totalInvested > 0 && (
+                    <div className="text-muted-foreground flex items-center justify-between text-xs">
+                      <span>
+                        Invested:{" "}
+                        {formatIndianCurrency(
+                          portfolioStats.totalInvested,
+                          summary.currency,
+                        )}
+                      </span>
+                      <span>
+                        Current:{" "}
+                        {formatIndianCurrency(
+                          portfolioStats.currentValue,
+                          summary.currency,
+                        )}
+                      </span>
+                    </div>
+                  )}
 
                   {/* MIS Margin Info - Show if user has MIS positions */}
                   {summary.misMarginUsed &&

@@ -1,21 +1,16 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { StockSearch } from "../../../../components/trading/StockSearch";
-import { Watchlist } from "../../../../components/trading/Watchlist";
-import { WatchlistButton } from "../../../../components/trading/WatchlistButton";
-import IndicesCard from "../../../../components/indices/IndicesCard";
-import { useWallet } from "../../../../hooks/useWallet";
-import { getPortfolio } from "../../../../services/tradingApi";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "../../../../components/ui/card";
-import { Button } from "../../../../components/ui/button";
-import { Badge } from "../../../../components/ui/badge";
-import { Skeleton } from "../../../../components/ui/skeleton";
+import { StockSearch } from "@/components/trading/StockSearch";
+import { Watchlist } from "@/components/trading/Watchlist";
+import { WatchlistButton } from "@/components/trading/WatchlistButton";
+import IndicesCard from "@/components/indices/IndicesCard";
+import { useWallet } from "@/hooks/useWallet";
+import { usePortfolio } from "@/providers/PortfolioProvider";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   TrendingUp,
   TrendingDown,
@@ -42,10 +37,10 @@ import {
   calculateChangePercent,
   isMarketOpen,
   MarketTimingResponse,
-} from "../../../../services/marketApi";
-import { SearchSkeleton } from "../../../../components/ui/SearchSkeleton";
+} from "@/services/marketApi";
+import { SearchSkeleton } from "@/components/ui/SearchSkeleton";
 import Link from "next/link";
-import { cn } from "../../../../lib/utils";
+import { cn } from "@/lib/utils";
 
 // StockCard component for consistent stock display
 interface StockCardProps {
@@ -221,8 +216,12 @@ export default function StocksPage() {
 
   // Portfolio and wallet data
   const { summary: walletSummary, loading: walletLoading } = useWallet();
-  const [portfolio, setPortfolio] = useState<any>(null);
-  const [portfolioLoading, setPortfolioLoading] = useState(true);
+  const {
+    portfolioStats: providerPortfolioStats,
+    loading: portfolioLoading,
+    lastUpdated: portfolioLastUpdated,
+    isMarketOpen: portfolioMarketOpen,
+  } = usePortfolio();
 
   // Fetch market data
   useEffect(() => {
@@ -258,44 +257,19 @@ export default function StocksPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch portfolio data
-  useEffect(() => {
-    const fetchPortfolioData = async () => {
-      try {
-        setPortfolioLoading(true);
-        const data = await getPortfolio();
-        setPortfolio(data);
-      } catch (error) {
-        console.error("Failed to fetch portfolio:", error);
-      } finally {
-        setPortfolioLoading(false);
-      }
-    };
-
-    fetchPortfolioData();
-  }, []);
-
-  // Calculate portfolio stats from real data
+  // Calculate portfolio stats including wallet balance
   const portfolioStats = {
-    totalValue:
-      walletSummary && portfolio?.summary
-        ? parseFloat(walletSummary.virtualCash) +
-          parseFloat(portfolio.summary.currentValue || "0")
-        : walletSummary
-          ? parseFloat(walletSummary.virtualCash)
-          : 0,
-    investedValue: portfolio?.summary
-      ? parseFloat(portfolio.summary.totalInvested || "0")
-      : 0,
-    currentValue: walletSummary ? parseFloat(walletSummary.virtualCash) : 0,
-    totalPnL: portfolio?.summary
-      ? parseFloat(portfolio.summary.totalPnL || "0")
-      : 0,
-    totalPnLPercent: portfolio?.summary?.totalPnLPercent || 0,
-    dayPnL: portfolio?.summary
-      ? parseFloat(portfolio.summary.dayPnL || "0")
-      : 0,
-    dayPnLPercent: portfolio?.summary?.dayPnLPercent || 0,
+    totalInvested: providerPortfolioStats.totalInvested,
+    investedValue: providerPortfolioStats.totalInvested, // Alias for compatibility
+    currentValue: walletSummary ? parseFloat(walletSummary.virtualCash) : 0, // Wallet cash
+    totalValue: walletSummary
+      ? parseFloat(walletSummary.virtualCash) +
+        providerPortfolioStats.currentValue
+      : providerPortfolioStats.currentValue,
+    totalPnL: providerPortfolioStats.totalPnL,
+    totalPnLPercent: providerPortfolioStats.totalPnLPercent,
+    dayPnL: providerPortfolioStats.dayPnL,
+    dayPnLPercent: providerPortfolioStats.dayPnLPercent,
   };
 
   // Check if market is open
@@ -312,11 +286,18 @@ export default function StocksPage() {
               <CardTitle className="text-xl">Portfolio Overview</CardTitle>
               <div className="text-muted-foreground flex items-center gap-2 text-sm">
                 <Clock className="h-4 w-4" />
-                <span>Updated {lastUpdated.toLocaleTimeString()}</span>
+                <span>
+                  Updated{" "}
+                  {portfolioLastUpdated
+                    ? portfolioLastUpdated.toLocaleTimeString()
+                    : lastUpdated.toLocaleTimeString()}
+                </span>
                 <div
-                  className={`h-2 w-2 rounded-full ${marketIsOpen ? "bg-chart-1" : "bg-destructive"}`}
+                  className={`h-2 w-2 rounded-full ${portfolioMarketOpen ? "bg-chart-1" : "bg-destructive"}`}
                 />
-                <span>{marketIsOpen ? "Market Open" : "Market Closed"}</span>
+                <span>
+                  {portfolioMarketOpen ? "Market Open" : "Market Closed"}
+                </span>
               </div>
             </div>
           </CardHeader>
@@ -430,7 +411,7 @@ export default function StocksPage() {
                         : "text-red-600 dark:text-red-400"
                     }`}
                   >
-                    {portfolioStats.totalPnL >= 0 ? "+" : ""}₹
+                    {portfolioStats.totalPnL >= 0 ? "+" : "-"}₹
                     {Math.abs(portfolioStats.totalPnL).toLocaleString("en-IN", {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
@@ -444,8 +425,8 @@ export default function StocksPage() {
                     }
                     className="mt-1"
                   >
-                    {portfolioStats.totalPnLPercent >= 0 ? "+" : ""}
-                    {portfolioStats.totalPnLPercent.toFixed(3)}%
+                    {portfolioStats.totalPnLPercent >= 0 ? "+" : "-"}
+                    {Math.abs(portfolioStats.totalPnLPercent).toFixed(2)}%
                   </Badge>
                 </div>
               </div>

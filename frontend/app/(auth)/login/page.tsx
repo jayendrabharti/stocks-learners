@@ -73,7 +73,7 @@ export default function LoginPage() {
           {
             email,
             otp,
-          }
+          },
         );
         if (success) {
           toast.success("OTP verified successfully");
@@ -106,88 +106,95 @@ export default function LoginPage() {
     setOtpExpiresAt(null);
     toast.error("OTP has expired", { description: "Try logging in again" });
   };
-
   return (
     <Card>
-      <CardContent className="flex flex-col items-center gap-4 w-sm max-w-full">
+      <CardContent className="flex w-sm max-w-full flex-col items-center gap-4">
         <span className={cn("text-2xl font-bold")}>L O G I N</span>
-        {otpSent ? (
-          <>
-            <span className="font-light">
-              Verify OTP sent to <b className="font-bold underline">{email}</b>
-            </span>
-            {otpExpiresAt && (
-              <Countdown
-                date={otpExpiresAt}
-                renderer={CountdownRenderer}
-                onComplete={handleOtpExpired}
-              />
-            )}
-            <InputOTP
-              value={otp}
-              onChange={(otp) => setOtp(otp)}
-              maxLength={6}
-              pattern={REGEXP_ONLY_DIGITS_AND_CHARS}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  verifyOtp();
-                }
-              }}
-            >
-              <InputOTPGroup>
-                <InputOTPSlot index={0} />
-                <InputOTPSlot index={1} />
-                <InputOTPSlot index={2} />
-                <InputOTPSlot index={3} />
-                <InputOTPSlot index={4} />
-                <InputOTPSlot index={5} />
-              </InputOTPGroup>
-            </InputOTP>
-            <Button
-              onClick={verifyOtp}
-              disabled={verifyingOtp}
-              className="w-full"
-              size={"sm"}
-            >
-              {verifyingOtp ? "Verifying..." : "Verify OTP"}
-              {verifyingOtp ? (
-                <LoaderCircleIcon className="animate-spin" />
-              ) : (
-                <LogInIcon />
-              )}
-            </Button>
-          </>
-        ) : (
-          <>
-            <Input
-              name="email"
-              placeholder="Enter your Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  sendOtp();
-                }
-              }}
-            />
-            <Button
-              onClick={sendOtp}
-              disabled={sendingOtp}
-              className="w-full"
-              size={"sm"}
-            >
-              {sendingOtp ? "Sending..." : "Send OTP"}
-              {sendingOtp ? (
-                <LoaderCircleIcon className="animate-spin" />
-              ) : (
-                <SendIcon />
-              )}
-            </Button>
-            <Separator />
-            <GoogleButton className="w-full" />
-          </>
-        )}
+        <GoogleButton className="w-full" />
       </CardContent>
     </Card>
   );
+  // return (
+  //   <Card>
+  //     <CardContent className="flex flex-col items-center gap-4 w-sm max-w-full">
+  //       <span className={cn("text-2xl font-bold")}>L O G I N</span>
+  //       {otpSent ? (
+  //         <>
+  //           <span className="font-light">
+  //             Verify OTP sent to <b className="font-bold underline">{email}</b>
+  //           </span>
+  //           {otpExpiresAt && (
+  //             <Countdown
+  //               date={otpExpiresAt}
+  //               renderer={CountdownRenderer}
+  //               onComplete={handleOtpExpired}
+  //             />
+  //           )}
+  //           <InputOTP
+  //             value={otp}
+  //             onChange={(otp) => setOtp(otp)}
+  //             maxLength={6}
+  //             pattern={REGEXP_ONLY_DIGITS_AND_CHARS}
+  //             onKeyDown={(e) => {
+  //               if (e.key === "Enter") {
+  //                 verifyOtp();
+  //               }
+  //             }}
+  //           >
+  //             <InputOTPGroup>
+  //               <InputOTPSlot index={0} />
+  //               <InputOTPSlot index={1} />
+  //               <InputOTPSlot index={2} />
+  //               <InputOTPSlot index={3} />
+  //               <InputOTPSlot index={4} />
+  //               <InputOTPSlot index={5} />
+  //             </InputOTPGroup>
+  //           </InputOTP>
+  //           <Button
+  //             onClick={verifyOtp}
+  //             disabled={verifyingOtp}
+  //             className="w-full"
+  //             size={"sm"}
+  //           >
+  //             {verifyingOtp ? "Verifying..." : "Verify OTP"}
+  //             {verifyingOtp ? (
+  //               <LoaderCircleIcon className="animate-spin" />
+  //             ) : (
+  //               <LogInIcon />
+  //             )}
+  //           </Button>
+  //         </>
+  //       ) : (
+  //         <>
+  //           <Input
+  //             name="email"
+  //             placeholder="Enter your Email"
+  //             value={email}
+  //             onChange={(e) => setEmail(e.target.value)}
+  //             onKeyDown={(e) => {
+  //               if (e.key === "Enter") {
+  //                 sendOtp();
+  //               }
+  //             }}
+  //           />
+  //           <Button
+  //             onClick={sendOtp}
+  //             disabled={sendingOtp}
+  //             className="w-full"
+  //             size={"sm"}
+  //           >
+  //             {sendingOtp ? "Sending..." : "Send OTP"}
+  //             {sendingOtp ? (
+  //               <LoaderCircleIcon className="animate-spin" />
+  //             ) : (
+  //               <SendIcon />
+  //             )}
+  //           </Button>
+  //           <Separator />
+  //           <GoogleButton className="w-full" />
+  //         </>
+  //       )}
+  //     </CardContent>
+  //   </Card>
+  // );
 }

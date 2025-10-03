@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useState } from "react";
-import { useWatchlist } from "../../providers/WatchlistProvider";
-import { Button } from "../ui/button";
+import { useWatchlist } from "@/providers/WatchlistProvider";
+import { Button } from "@/components/ui/button";
 import { Star, Plus, Check, Loader2 } from "lucide-react";
-import { cn } from "../../lib/utils";
-import { AddToWatchlistRequest } from "../../services/watchlistApi";
+import { cn } from "@/lib/utils";
+import { AddToWatchlistRequest } from "@/services/watchlistApi";
 
 interface WatchlistButtonProps {
   stockData: AddToWatchlistRequest;

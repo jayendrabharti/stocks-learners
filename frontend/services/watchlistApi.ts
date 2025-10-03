@@ -1,4 +1,4 @@
-import ApiClient from "../utils/ApiClient";
+import ApiClient from "@/utils/ApiClient";
 
 export interface WatchlistItem {
   id: string;

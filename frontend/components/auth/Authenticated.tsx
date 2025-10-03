@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Button } from "../ui/button";
+import { Button } from "@/components/ui/button";
 import { CheckCheckIcon, HomeIcon } from "lucide-react";
 import SignOutButton from "./SignOutButton";
 

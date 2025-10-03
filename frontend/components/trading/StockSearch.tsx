@@ -2,11 +2,11 @@
 
 import React, { useState } from "react";
 import { Search, Filter, X } from "lucide-react";
-import { useStockSearch } from "../../hooks/useStockSearch";
+import { useStockSearch } from "@/hooks/useStockSearch";
 import { SearchResults } from "./SearchResults";
 import { SearchFilters } from "./SearchFilters";
 import { RecentSearches } from "./RecentSearches";
-import { Input } from "../ui/input";
+import { Input } from "@/components/ui/input";
 
 interface StockSearchProps {
   onStockSelect?: (stock: any) => void;

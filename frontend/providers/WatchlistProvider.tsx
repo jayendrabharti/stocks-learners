@@ -11,9 +11,9 @@ import {
   WatchlistApi,
   WatchlistItem,
   AddToWatchlistRequest,
-} from "../services/watchlistApi";
+} from "@/services/watchlistApi";
 import { toast } from "sonner";
-import ApiClient from "../utils/ApiClient";
+import ApiClient from "@/utils/ApiClient";
 
 // Live data structure matching the stock detail page
 type LiveData = {

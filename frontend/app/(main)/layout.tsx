@@ -1,16 +1,15 @@
+"use client";
+
 import Footer from "@/components/Footer";
 import Main from "@/components/Main";
 import NavBar from "@/components/NavBar";
 import { cn } from "@/lib/utils";
 import { ReactNode } from "react";
+import { PortfolioProvider } from "@/providers/PortfolioProvider";
 
-export default async function MainLayout({
-  children,
-}: {
-  children: ReactNode;
-}) {
+export default function MainLayout({ children }: { children: ReactNode }) {
   return (
-    <>
+    <PortfolioProvider>
       <NavBar />
       <Main
         className={cn(
@@ -20,6 +19,6 @@ export default async function MainLayout({
         {children}
         <Footer />
       </Main>
-    </>
+    </PortfolioProvider>
   );
 }

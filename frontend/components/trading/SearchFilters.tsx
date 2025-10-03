@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { SearchFilters as SearchFiltersType } from "../../types/trading";
+import { SearchFilters as SearchFiltersType } from "@/types/trading";
 
 interface SearchFiltersProps {
   filters: SearchFiltersType;
@@ -124,7 +124,7 @@ export const SearchFilters: React.FC<SearchFiltersProps> = ({
             )}
 
             {filters.instrumentType && (
-              <span className="inline-flex items-center rounded-full bg-chart-1/10 px-2.5 py-0.5 text-xs font-medium text-green-800">
+              <span className="bg-chart-1/10 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium text-green-800">
                 {
                   INSTRUMENT_TYPES.find(
                     (t) => t.value === filters.instrumentType,
@@ -134,7 +134,7 @@ export const SearchFilters: React.FC<SearchFiltersProps> = ({
                   onClick={() =>
                     onFiltersChange({ instrumentType: "", page: 1 })
                   }
-                  className="ml-1.5 text-chart-1 hover:text-green-800"
+                  className="text-chart-1 ml-1.5 hover:text-green-800"
                 >
                   ×
                 </button>

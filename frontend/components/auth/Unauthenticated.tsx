@@ -1,13 +1,13 @@
 import { BanIcon, LogInIcon } from "lucide-react";
 import Link from "next/link";
-import { Button } from "../ui/button";
+import { Button } from "@/components/ui/button";
 
 export default function Unauthenticated() {
   return (
-    <div className="flex flex-col items-center justify-center h-full w-full gap-2">
-      <BanIcon className="text-red-500 size-16" />
+    <div className="flex h-full w-full flex-col items-center justify-center gap-2">
+      <BanIcon className="size-16 text-red-500" />
       <span className="text-2xl font-bold text-red-500">Unauthenticated</span>
-      <span className="text-sm text-muted-foreground">
+      <span className="text-muted-foreground text-sm">
         You must be logged in to access this page.
       </span>
       <Link href="/login">

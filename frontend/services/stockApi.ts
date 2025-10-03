@@ -1,4 +1,4 @@
-import ApiClient from "../utils/ApiClient";
+import ApiClient from "@/utils/ApiClient";
 import {
   InstrumentSearch,
   SearchFilters,
@@ -6,7 +6,7 @@ import {
   StockPrice,
   StockQuote,
   ApiResponse,
-} from "../types/trading";
+} from "@/types/trading";
 
 export class StockApiService {
   private static instance: StockApiService;

@@ -1,16 +1,16 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  getPortfolio,
   PortfolioHolding,
   getPurchaseLots,
   PurchaseLot,
 } from "@/services/tradingApi";
 import { useWallet } from "@/hooks/useWallet";
+import { usePortfolio } from "@/providers/PortfolioProvider";
 import {
   SellStockDialog,
   MarketStatus,
@@ -26,6 +26,7 @@ import {
   AlertCircle,
   ChevronDown,
   ChevronRight,
+  Clock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -43,19 +44,26 @@ interface HoldingWithLivePrice extends PortfolioHolding {
 }
 
 export default function PortfolioPage() {
-  const [allHoldings, setAllHoldings] = useState<HoldingWithLivePrice[]>([]);
-  const [cncHoldings, setCncHoldings] = useState<HoldingWithLivePrice[]>([]);
-  const [misHoldings, setMisHoldings] = useState<HoldingWithLivePrice[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [fetchingLivePrices, setFetchingLivePrices] = useState(false);
+  // Use PortfolioProvider for holdings data
+  const {
+    allHoldings,
+    cncHoldings,
+    misHoldings,
+    summary,
+    warnings,
+    loading,
+    refreshing,
+    refreshPortfolio,
+    portfolioStats,
+    lastUpdated,
+    isMarketOpen: marketOpen,
+  } = usePortfolio();
+
   const [error, setError] = useState<string | null>(null);
-  const [warnings, setWarnings] = useState<any>(null);
   const [selectedHolding, setSelectedHolding] =
     useState<HoldingWithLivePrice | null>(null);
   const [showSellDialog, setShowSellDialog] = useState(false);
   const [activeTab, setActiveTab] = useState<"all" | "cnc" | "mis">("all");
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   // Separate state for expansion - keyed by holding ID
   const [expandedHoldings, setExpandedHoldings] = useState<
@@ -66,140 +74,7 @@ export default function PortfolioPage() {
   >({});
   const [lotsLoading, setLotsLoading] = useState<Record<string, boolean>>({});
 
-  const { summary, loading: walletLoading } = useWallet();
-
-  // Fetch live price for a single stock
-  const fetchLivePrice = async (
-    stockSymbol: string,
-    exchange: string,
-  ): Promise<number | null> => {
-    try {
-      const response = await ApiClient.get(
-        `/instruments/live-data?exchange=${exchange}&trading_symbol=${stockSymbol}`,
-      );
-
-      if (
-        response.data.success &&
-        response.data.quoteData?.payload?.last_price
-      ) {
-        return response.data.quoteData.payload.last_price;
-      }
-      return null;
-    } catch (error) {
-      console.error(`Failed to fetch live price for ${stockSymbol}:`, error);
-      return null;
-    }
-  };
-
-  // Fetch live prices for all holdings and calculate P&L
-  const fetchLivePricesForHoldings = useCallback(
-    async (holdings: PortfolioHolding[]): Promise<HoldingWithLivePrice[]> => {
-      const holdingsWithLivePrices = await Promise.all(
-        holdings.map(async (holding) => {
-          const livePrice = await fetchLivePrice(
-            holding.stockSymbol,
-            holding.exchange,
-          );
-
-          if (livePrice) {
-            // Calculate P&L with live price
-            const avgPrice = parseFloat(holding.averagePrice);
-            const totalInvested = parseFloat(holding.totalInvested);
-            const liveCurrentValue = livePrice * holding.quantity;
-            const livePnL = liveCurrentValue - totalInvested;
-            const livePnLPercent = (livePnL / totalInvested) * 100;
-
-            return {
-              ...holding,
-              livePrice,
-              liveCurrentValue,
-              livePnL,
-              livePnLPercent,
-            };
-          }
-
-          // Fallback to stored values if live price fetch fails
-          return {
-            ...holding,
-            livePrice: parseFloat(holding.currentPrice || "0"),
-            liveCurrentValue: parseFloat(holding.currentValue || "0"),
-            livePnL: parseFloat(holding.unrealizedPnL || "0"),
-            livePnLPercent: holding.unrealizedPnLPerc || 0,
-          };
-        }),
-      );
-
-      return holdingsWithLivePrices;
-    },
-    [],
-  );
-
-  useEffect(() => {
-    fetchPortfolio();
-  }, []);
-
-  // Auto-refresh live prices every 5 seconds
-  useEffect(() => {
-    if (allHoldings.length === 0) return;
-
-    const interval = setInterval(() => {
-      refreshLivePrices();
-    }, 5000); // Refresh every 5 seconds
-
-    return () => clearInterval(interval);
-  }, [allHoldings.length]);
-
-  const fetchPortfolio = async () => {
-    try {
-      setLoading(true);
-      const data = await getPortfolio();
-
-      // Fetch live prices immediately after getting portfolio
-      const holdingsWithLive = await fetchLivePricesForHoldings(
-        data.holdings.all,
-      );
-
-      setAllHoldings(holdingsWithLive);
-      setCncHoldings(holdingsWithLive.filter((h) => h.product === "CNC"));
-      setMisHoldings(holdingsWithLive.filter((h) => h.product === "MIS"));
-      setWarnings(data.warnings);
-      setError(null);
-      setLastUpdated(new Date());
-    } catch (err) {
-      console.error("Error fetching portfolio:", err);
-      setError("Failed to load portfolio");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const refreshLivePrices = async () => {
-    if (fetchingLivePrices || allHoldings.length === 0) return;
-
-    try {
-      setFetchingLivePrices(true);
-      const holdingsWithLive = await fetchLivePricesForHoldings(allHoldings);
-
-      // Just update prices, don't touch expansion state (managed separately)
-      setAllHoldings(holdingsWithLive);
-      setCncHoldings(holdingsWithLive.filter((h) => h.product === "CNC"));
-      setMisHoldings(holdingsWithLive.filter((h) => h.product === "MIS"));
-      setLastUpdated(new Date());
-    } catch (error) {
-      console.error("Error refreshing live prices:", error);
-    } finally {
-      setFetchingLivePrices(false);
-    }
-  };
-
-  const handleRefresh = async () => {
-    try {
-      setRefreshing(true);
-      await fetchPortfolio();
-    } finally {
-      setRefreshing(false);
-    }
-  };
+  const { summary: walletSummary, loading: walletLoading } = useWallet();
 
   const handleSellClick = (holding: PortfolioHolding) => {
     setSelectedHolding(holding);
@@ -207,7 +82,7 @@ export default function PortfolioPage() {
   };
 
   const handleSellSuccess = () => {
-    fetchPortfolio(); // Refresh portfolio after sale
+    refreshPortfolio(); // Refresh portfolio after sale
   };
 
   // Toggle expansion and fetch purchase lots if not already loaded
@@ -290,32 +165,19 @@ export default function PortfolioPage() {
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Activity className="text-muted-foreground mb-4 h-12 w-12" />
             <p className="text-muted-foreground mb-4 text-lg">{error}</p>
-            <Button onClick={fetchPortfolio}>Retry</Button>
+            <Button onClick={refreshPortfolio}>Retry</Button>
           </CardContent>
         </Card>
       </div>
     );
   }
 
-  // Calculate summary from live holdings data
-  const liveTotalInvested = allHoldings.reduce(
-    (sum, h) => sum + parseFloat(h.totalInvested),
-    0,
-  );
-  const liveCurrentValue = allHoldings.reduce(
-    (sum, h) => sum + (h.liveCurrentValue || 0),
-    0,
-  );
-  const liveTotalPnL = liveCurrentValue - liveTotalInvested;
-  const liveTotalPnLPercent =
-    liveTotalInvested > 0 ? (liveTotalPnL / liveTotalInvested) * 100 : 0;
-  const isPnLPositive = liveTotalPnL >= 0;
-
-  // Use live calculations instead of backend summary
-  const totalInvested = liveTotalInvested;
-  const currentValue = liveCurrentValue;
-  const totalPnL = liveTotalPnL;
-  const totalPnLPercent = liveTotalPnLPercent;
+  // Use portfolio stats from provider (calculated with live prices)
+  const totalInvested = portfolioStats.totalInvested;
+  const currentValue = portfolioStats.currentValue;
+  const totalPnL = portfolioStats.totalPnL;
+  const totalPnLPercent = portfolioStats.totalPnLPercent;
+  const isPnLPositive = totalPnL >= 0;
 
   // Get the current holdings based on active tab
   const displayHoldings =
@@ -335,10 +197,19 @@ export default function PortfolioPage() {
             Track your investments and performance
           </p>
           {lastUpdated && (
-            <p className="text-muted-foreground mt-1 text-xs">
+            <p className="text-muted-foreground mt-1 flex items-center gap-2 text-xs">
+              <Clock className="h-3 w-3" />
               Last updated: {lastUpdated.toLocaleTimeString("en-IN")}
-              {fetchingLivePrices && (
-                <span className="ml-2 animate-pulse">● Updating...</span>
+              <span className="mx-1">•</span>
+              <div
+                className={`h-2 w-2 rounded-full ${marketOpen ? "bg-chart-1" : "bg-destructive"}`}
+              />
+              <span>{marketOpen ? "Market Open" : "Market Closed"}</span>
+              {refreshing && (
+                <>
+                  <span className="mx-1">•</span>
+                  <span className="animate-pulse">Updating...</span>
+                </>
               )}
             </p>
           )}
@@ -346,7 +217,7 @@ export default function PortfolioPage() {
         <Button
           variant="outline"
           size="sm"
-          onClick={handleRefresh}
+          onClick={refreshPortfolio}
           disabled={refreshing}
         >
           <RefreshCw
@@ -567,11 +438,8 @@ export default function PortfolioPage() {
                     const isProfitable = pnl >= 0;
 
                     return (
-                      <>
-                        <tr
-                          key={holding.id}
-                          className="hover:bg-accent/50 border-b"
-                        >
+                      <React.Fragment key={holding.id}>
+                        <tr className="hover:bg-accent/50 border-b">
                           <td className="px-4 py-3">
                             <button
                               onClick={() => toggleExpanded(holding)}
@@ -806,7 +674,7 @@ export default function PortfolioPage() {
                             </td>
                           </tr>
                         )}
-                      </>
+                      </React.Fragment>
                     );
                   })}
                 </tbody>

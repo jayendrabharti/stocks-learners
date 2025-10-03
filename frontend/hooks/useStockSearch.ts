@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { debounce } from "../lib/tradingUtils";
-import { stockApiService } from "../services/stockApi";
+import { debounce } from "@/lib/tradingUtils";
+import { stockApiService } from "@/services/stockApi";
 import {
   InstrumentSearch,
   SearchFilters,
   SearchResponse,
-} from "../types/trading";
+} from "@/types/trading";
 
 export const useStockSearch = () => {
   const [query, setQuery] = useState("");

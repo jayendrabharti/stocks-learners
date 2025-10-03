@@ -1,14 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "../../../../../components/ui/card";
-import { Button } from "../../../../../components/ui/button";
-import { Badge } from "../../../../../components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { TrendingDown, ArrowLeft, Clock, RefreshCw } from "lucide-react";
 import {
   marketApi,
@@ -17,10 +12,10 @@ import {
   calculateChangePercent,
   isMarketOpen,
   MarketTimingResponse,
-} from "../../../../../services/marketApi";
-import { SearchSkeleton } from "../../../../../components/ui/SearchSkeleton";
+} from "@/services/marketApi";
+import { SearchSkeleton } from "@/components/ui/SearchSkeleton";
 import Link from "next/link";
-import { cn } from "../../../../../lib/utils";
+import { cn } from "@/lib/utils";
 
 interface StockCardProps {
   stock: Stock;

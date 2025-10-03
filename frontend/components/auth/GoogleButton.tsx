@@ -1,6 +1,6 @@
 "use client";
 import { FcGoogle } from "react-icons/fc";
-import { Button } from "../ui/button";
+import { Button } from "@/components/ui/button";
 import ApiClient from "@/utils/ApiClient";
 import { toast } from "sonner";
 

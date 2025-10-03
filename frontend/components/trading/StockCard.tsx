@@ -2,16 +2,16 @@
 
 import React, { useState, useEffect } from "react";
 import { TrendingUp, TrendingDown, Plus, Minus } from "lucide-react";
-import { InstrumentSearch, StockPrice } from "../../types/trading";
-import { stockApiService } from "../../services/stockApi";
+import { InstrumentSearch, StockPrice } from "@/types/trading";
+import { stockApiService } from "@/services/stockApi";
 import { WatchlistButton } from "./WatchlistButton";
 import {
   formatCurrency,
   formatPercentage,
   getChangeColor,
   getChangeBgColor,
-} from "../../lib/tradingUtils";
-import { getStockLogoUrl, getStockInitials } from "../../lib/stockUtils";
+} from "@/lib/tradingUtils";
+import { getStockLogoUrl, getStockInitials } from "@/lib/stockUtils";
 
 interface StockCardProps {
   stock: InstrumentSearch;

@@ -2,9 +2,9 @@
 
 import React from "react";
 import { Loader2, AlertCircle, TrendingUp } from "lucide-react";
-import { InstrumentSearch, SearchResponse } from "../../types/trading";
+import { InstrumentSearch, SearchResponse } from "@/types/trading";
 import { StockCard } from "./StockCard";
-import { SearchSkeleton } from "../ui/SearchSkeleton";
+import { SearchSkeleton } from "@/components/ui/SearchSkeleton";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 

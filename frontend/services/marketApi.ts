@@ -1,4 +1,4 @@
-import ApiClient from "../utils/ApiClient";
+import ApiClient from "@/utils/ApiClient";
 
 // Backend API response wrapper
 interface ApiResponse<T> {
