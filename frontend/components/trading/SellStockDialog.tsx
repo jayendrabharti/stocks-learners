@@ -197,8 +197,8 @@ export default function SellStockDialog({
                 pattern="[0-9]*"
                 value={quantity}
                 onChange={(e) => {
-                  const val = e.target.value.replace(/\D/g, ''); // Remove non-digits
-                  if (val === '') {
+                  const val = e.target.value.replace(/\D/g, ""); // Remove non-digits
+                  if (val === "") {
                     setQuantity(0);
                   } else {
                     const numVal = parseInt(val);

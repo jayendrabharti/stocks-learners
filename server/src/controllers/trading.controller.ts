@@ -648,15 +648,17 @@ export const getPortfolio = async (
 
     // Fetch live prices for all holdings
     const accessToken = await getGrowwAccessToken();
-    
+
     const holdingsWithLivePrices = await Promise.all(
       holdings.map(async (holding) => {
         try {
           // Fetch live quote from Groww
           const quoteUrl = `https://api.groww.in/v1/live-data/quote?exchange=${encodeURIComponent(
             holding.exchange
-          )}&segment=CASH&trading_symbol=${encodeURIComponent(holding.stockSymbol)}`;
-          
+          )}&segment=CASH&trading_symbol=${encodeURIComponent(
+            holding.stockSymbol
+          )}`;
+
           const quoteResponse = await fetch(quoteUrl, {
             method: "GET",
             headers: {
@@ -668,8 +670,10 @@ export const getPortfolio = async (
 
           if (quoteResponse.ok) {
             const quoteData: any = await quoteResponse.json();
-            const livePrice = parseFloat(quoteData?.ltp || holding.currentPrice);
-            
+            const livePrice = parseFloat(
+              quoteData?.ltp || holding.currentPrice
+            );
+
             // Calculate updated metrics with live price
             const currentValue = new Decimal(livePrice).mul(holding.quantity);
             const unrealizedPnL = currentValue.minus(holding.totalInvested);
@@ -689,17 +693,24 @@ export const getPortfolio = async (
             };
           }
         } catch (error) {
-          console.error(`Error fetching live price for ${holding.stockSymbol}:`, error);
+          console.error(
+            `Error fetching live price for ${holding.stockSymbol}:`,
+            error
+          );
         }
-        
+
         // Fallback to stored values if live fetch fails
         return convertHoldingToPlainObject(holding);
       })
     );
 
     // Group holdings by product type
-    const cncHoldings = holdingsWithLivePrices.filter((h) => h.product === "CNC");
-    const misHoldings = holdingsWithLivePrices.filter((h) => h.product === "MIS");
+    const cncHoldings = holdingsWithLivePrices.filter(
+      (h) => h.product === "CNC"
+    );
+    const misHoldings = holdingsWithLivePrices.filter(
+      (h) => h.product === "MIS"
+    );
 
     // Get wallet for summary
     const wallet = await prisma.wallet.findUnique({
@@ -718,24 +729,32 @@ export const getPortfolio = async (
 
     // Calculate live totals from holdings with updated prices
     // Note: holdings now have string values, so convert back to Decimal for calculations
-    const liveTotalInvested = holdingsWithLivePrices
-      .reduce((sum, h) => sum.plus(new Decimal(h.totalInvested)), new Decimal(0));
-    
-    const liveCurrentValue = holdingsWithLivePrices
-      .reduce((sum, h) => sum.plus(new Decimal(h.currentValue)), new Decimal(0));
-    
+    const liveTotalInvested = holdingsWithLivePrices.reduce(
+      (sum, h) => sum.plus(new Decimal(h.totalInvested)),
+      new Decimal(0)
+    );
+
+    const liveCurrentValue = holdingsWithLivePrices.reduce(
+      (sum, h) => sum.plus(new Decimal(h.currentValue)),
+      new Decimal(0)
+    );
+
     const liveTotalPnL = liveCurrentValue.minus(liveTotalInvested);
-    const liveTotalPnLPercent = liveTotalInvested.isZero() 
-      ? 0 
+    const liveTotalPnLPercent = liveTotalInvested.isZero()
+      ? 0
       : liveTotalPnL.div(liveTotalInvested).mul(100).toNumber();
 
     // Calculate MIS specific metrics
-    const misTotalInvested = misHoldings
-      .reduce((sum, h) => sum.plus(new Decimal(h.totalInvested)), new Decimal(0));
-    
-    const misCurrentValue = misHoldings
-      .reduce((sum, h) => sum.plus(new Decimal(h.currentValue)), new Decimal(0));
-    
+    const misTotalInvested = misHoldings.reduce(
+      (sum, h) => sum.plus(new Decimal(h.totalInvested)),
+      new Decimal(0)
+    );
+
+    const misCurrentValue = misHoldings.reduce(
+      (sum, h) => sum.plus(new Decimal(h.currentValue)),
+      new Decimal(0)
+    );
+
     const misTotalPnL = misCurrentValue.minus(misTotalInvested);
 
     return res.status(200).json({
@@ -790,3 +809,187 @@ export const getPortfolio = async (
     });
   }
 };
+
+/**
+ * Get individual purchase lots for a specific holding
+ * Shows all BUY transactions for a stock to see each purchase separately
+ */
+export const getPurchaseLots = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "User not authenticated",
+      });
+    }
+
+    const { stockSymbol, exchange, product } = req.params;
+
+    if (!stockSymbol || !exchange || !product) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required parameters",
+      });
+    }
+
+    // Validate product type
+    if (product !== "CNC" && product !== "MIS") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid product type. Must be CNC or MIS",
+      });
+    }
+
+    // First, get the holding to verify it exists
+    const holding = await prisma.portfolio.findFirst({
+      where: {
+        userId,
+        stockSymbol,
+        exchange,
+        product: product as any,
+      },
+    });
+
+    if (!holding) {
+      return res.status(404).json({
+        success: false,
+        message: "Holding not found",
+      });
+    }
+
+    // Fetch current live price from Groww API
+    const accessToken = await getGrowwAccessToken();
+    let currentPrice = 0;
+
+    try {
+      const quoteUrl = `https://api.groww.in/v1/live-data/quote?exchange=${encodeURIComponent(
+        exchange
+      )}&segment=CASH&trading_symbol=${encodeURIComponent(stockSymbol)}`;
+
+      const quoteResponse = await fetch(quoteUrl, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${accessToken}`,
+          "X-API-VERSION": "1.0",
+        },
+      });
+
+      if (quoteResponse.ok) {
+        const quoteData: any = await quoteResponse.json();
+        // Use the same field as portfolio: quoteData?.ltp
+        currentPrice = parseFloat(quoteData?.ltp || holding.currentPrice);
+        
+        console.log(`[getPurchaseLots] ${stockSymbol} - Live price fetched: ₹${currentPrice}`);
+        console.log(`[getPurchaseLots] API Response ltp:`, quoteData?.ltp);
+      } else {
+        // Fallback to holding's price if API fails
+        currentPrice = parseFloat(holding.currentPrice.toString());
+        console.warn(`[getPurchaseLots] ${stockSymbol} - API failed, using DB price: ₹${currentPrice}`);
+      }
+    } catch (error) {
+      console.error(`Error fetching live price for ${stockSymbol}:`, error);
+      // Fallback to holding's price
+      currentPrice = parseFloat(holding.currentPrice.toString());
+    }
+    
+    console.log(`[getPurchaseLots] ${stockSymbol} - Final currentPrice used for calculations: ₹${currentPrice}`);
+
+    // Fetch all BUY transactions for this stock (excluding SELLs)
+    const buyTransactions = await prisma.transaction.findMany({
+      where: {
+        userId,
+        stockSymbol,
+        exchange,
+        product: product as any,
+        type: "BUY",
+        status: "COMPLETED",
+      },
+      orderBy: {
+        executedAt: "desc", // Newest first
+      },
+      select: {
+        id: true,
+        quantity: true,
+        price: true,
+        totalAmount: true,
+        netAmount: true,
+        brokerage: true,
+        taxes: true,
+        totalCharges: true,
+        executedAt: true,
+        createdAt: true,
+      },
+    });
+
+    // Transform transactions to purchase lots with P&L
+    const purchaseLots = buyTransactions.map((transaction) => {
+      const quantity = transaction.quantity;
+      const invested = parseFloat(transaction.totalAmount.toString());
+      const currentValue = currentPrice * quantity;
+      const pnl = currentValue - invested;
+      const pnlPercent = invested > 0 ? (pnl / invested) * 100 : 0;
+
+      console.log(`[getPurchaseLots] Lot calc - Qty: ${quantity}, CurrentPrice: ${currentPrice}, CurrentValue: ${currentValue}, Invested: ${invested}, PnL: ${pnl}`);
+
+      return {
+        id: transaction.id,
+        quantity,
+        purchasePrice: transaction.price.toString(),
+        totalInvested: transaction.totalAmount.toString(),
+        netAmount: transaction.netAmount.toString(),
+        brokerage: transaction.brokerage.toString(),
+        taxes: transaction.taxes.toString(),
+        totalCharges: transaction.totalCharges.toString(),
+        currentPrice: currentPrice.toString(),
+        currentValue: currentValue.toFixed(2),
+        pnl: pnl.toFixed(2),
+        pnlPercent: pnlPercent.toFixed(2),
+        purchaseDate: transaction.executedAt,
+        createdAt: transaction.createdAt,
+      };
+    });
+
+    // Calculate totals
+    const totalQuantity = purchaseLots.reduce((sum, lot) => sum + lot.quantity, 0);
+    const totalInvested = purchaseLots.reduce(
+      (sum, lot) => sum + parseFloat(lot.totalInvested),
+      0
+    );
+    const totalCurrentValue = purchaseLots.reduce(
+      (sum, lot) => sum + parseFloat(lot.currentValue),
+      0
+    );
+    const totalPnL = totalCurrentValue - totalInvested;
+    const totalPnLPercent = totalInvested > 0 ? (totalPnL / totalInvested) * 100 : 0;
+    const averagePrice = totalQuantity > 0 ? totalInvested / totalQuantity : 0;
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        stockSymbol,
+        exchange,
+        product,
+        currentPrice: currentPrice.toString(),
+        purchaseLots,
+        summary: {
+          totalLots: purchaseLots.length,
+          totalQuantity,
+          averagePrice: averagePrice.toFixed(2),
+          totalInvested: totalInvested.toFixed(2),
+          totalCurrentValue: totalCurrentValue.toFixed(2),
+          totalPnL: totalPnL.toFixed(2),
+          totalPnLPercent: totalPnLPercent.toFixed(2),
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching purchase lots:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch purchase lots",
+    });
+  }
+};
+

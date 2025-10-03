@@ -376,7 +376,8 @@ export default function StocksPage() {
                     </span>
                   </div>
                   <p className="text-foreground text-4xl font-bold">
-                    ₹{portfolioStats.currentValue.toLocaleString("en-IN", {
+                    ₹
+                    {portfolioStats.currentValue.toLocaleString("en-IN", {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     })}
@@ -397,13 +398,15 @@ export default function StocksPage() {
                     </span>
                   </div>
                   <p className="text-foreground text-3xl font-bold">
-                    ₹{portfolioStats.investedValue.toLocaleString("en-IN", {
+                    ₹
+                    {portfolioStats.investedValue.toLocaleString("en-IN", {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     })}
                   </p>
                   <p className="text-muted-foreground mt-1 text-sm">
-                    Total: ₹{portfolioStats.totalValue.toLocaleString("en-IN", {
+                    Total: ₹
+                    {portfolioStats.totalValue.toLocaleString("en-IN", {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     })}

@@ -4,6 +4,7 @@ import {
   sellStock,
   getTransactionHistory,
   getPortfolio,
+  getPurchaseLots,
 } from "../controllers/trading.controller.js";
 import validToken from "../middlewares/validToken.js";
 
@@ -39,5 +40,12 @@ router.get("/transactions", getTransactionHistory);
  * @access  Private
  */
 router.get("/portfolio", getPortfolio);
+
+/**
+ * @route   GET /api/trading/purchase-lots/:stockSymbol/:exchange/:product
+ * @desc    Get individual purchase lots for a specific holding
+ * @access  Private
+ */
+router.get("/purchase-lots/:stockSymbol/:exchange/:product", getPurchaseLots);
 
 export default router;

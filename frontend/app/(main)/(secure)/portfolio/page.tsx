@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getPortfolio, PortfolioHolding } from "@/services/tradingApi";
+import { getPortfolio, PortfolioHolding, getPurchaseLots, PurchaseLot } from "@/services/tradingApi";
 import { useWallet } from "@/hooks/useWallet";
 import {
   SellStockDialog,
@@ -19,6 +19,8 @@ import {
   BarChart3,
   Activity,
   AlertCircle,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -30,6 +32,9 @@ interface HoldingWithLivePrice extends PortfolioHolding {
   livePnL?: number;
   livePnLPercent?: number;
   liveCurrentValue?: number;
+  isExpanded?: boolean;
+  purchaseLots?: PurchaseLot[];
+  lotsLoading?: boolean;
 }
 
 export default function PortfolioPage() {
@@ -46,20 +51,28 @@ export default function PortfolioPage() {
   const [showSellDialog, setShowSellDialog] = useState(false);
   const [activeTab, setActiveTab] = useState<"all" | "cnc" | "mis">("all");
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  
+  // Separate state for expansion - keyed by holding ID
+  const [expandedHoldings, setExpandedHoldings] = useState<Record<string, boolean>>({});
+  const [purchaseLotsCache, setPurchaseLotsCache] = useState<Record<string, PurchaseLot[]>>({});
+  const [lotsLoading, setLotsLoading] = useState<Record<string, boolean>>({});
 
   const { summary, loading: walletLoading } = useWallet();
 
   // Fetch live price for a single stock
   const fetchLivePrice = async (
     stockSymbol: string,
-    exchange: string
+    exchange: string,
   ): Promise<number | null> => {
     try {
       const response = await ApiClient.get(
-        `/instruments/live-data?exchange=${exchange}&trading_symbol=${stockSymbol}`
+        `/instruments/live-data?exchange=${exchange}&trading_symbol=${stockSymbol}`,
       );
 
-      if (response.data.success && response.data.quoteData?.payload?.last_price) {
+      if (
+        response.data.success &&
+        response.data.quoteData?.payload?.last_price
+      ) {
         return response.data.quoteData.payload.last_price;
       }
       return null;
@@ -76,7 +89,7 @@ export default function PortfolioPage() {
         holdings.map(async (holding) => {
           const livePrice = await fetchLivePrice(
             holding.stockSymbol,
-            holding.exchange
+            holding.exchange,
           );
 
           if (livePrice) {
@@ -104,12 +117,12 @@ export default function PortfolioPage() {
             livePnL: parseFloat(holding.unrealizedPnL || "0"),
             livePnLPercent: holding.unrealizedPnLPerc || 0,
           };
-        })
+        }),
       );
 
       return holdingsWithLivePrices;
     },
-    []
+    [],
   );
 
   useEffect(() => {
@@ -131,10 +144,12 @@ export default function PortfolioPage() {
     try {
       setLoading(true);
       const data = await getPortfolio();
-      
+
       // Fetch live prices immediately after getting portfolio
-      const holdingsWithLive = await fetchLivePricesForHoldings(data.holdings.all);
-      
+      const holdingsWithLive = await fetchLivePricesForHoldings(
+        data.holdings.all,
+      );
+
       setAllHoldings(holdingsWithLive);
       setCncHoldings(holdingsWithLive.filter((h) => h.product === "CNC"));
       setMisHoldings(holdingsWithLive.filter((h) => h.product === "MIS"));
@@ -155,7 +170,8 @@ export default function PortfolioPage() {
     try {
       setFetchingLivePrices(true);
       const holdingsWithLive = await fetchLivePricesForHoldings(allHoldings);
-      
+
+      // Just update prices, don't touch expansion state (managed separately)
       setAllHoldings(holdingsWithLive);
       setCncHoldings(holdingsWithLive.filter((h) => h.product === "CNC"));
       setMisHoldings(holdingsWithLive.filter((h) => h.product === "MIS"));
@@ -183,6 +199,48 @@ export default function PortfolioPage() {
 
   const handleSellSuccess = () => {
     fetchPortfolio(); // Refresh portfolio after sale
+  };
+
+  // Toggle expansion and fetch purchase lots if not already loaded
+  const toggleExpanded = async (holding: HoldingWithLivePrice) => {
+    const isCurrentlyExpanded = expandedHoldings[holding.id] || false;
+    const newExpandedState = !isCurrentlyExpanded;
+    
+    // Update expansion state
+    setExpandedHoldings(prev => ({
+      ...prev,
+      [holding.id]: newExpandedState,
+    }));
+
+    // If expanding and lots not loaded, fetch them
+    if (newExpandedState && !purchaseLotsCache[holding.id]) {
+      fetchPurchaseLots(holding);
+    }
+  };
+
+  // Fetch purchase lots for a specific holding
+  const fetchPurchaseLots = async (holding: HoldingWithLivePrice) => {
+    try {
+      // Mark as loading
+      setLotsLoading(prev => ({ ...prev, [holding.id]: true }));
+
+      const lotsData = await getPurchaseLots(
+        holding.stockSymbol,
+        holding.exchange,
+        holding.product
+      );
+
+      // Cache the lots
+      setPurchaseLotsCache(prev => ({
+        ...prev,
+        [holding.id]: lotsData.purchaseLots,
+      }));
+      
+      setLotsLoading(prev => ({ ...prev, [holding.id]: false }));
+    } catch (error) {
+      console.error("Error fetching purchase lots:", error);
+      setLotsLoading(prev => ({ ...prev, [holding.id]: false }));
+    }
   };
 
   const formatCurrency = (value: string | number) => {
@@ -233,11 +291,11 @@ export default function PortfolioPage() {
   // Calculate summary from live holdings data
   const liveTotalInvested = allHoldings.reduce(
     (sum, h) => sum + parseFloat(h.totalInvested),
-    0
+    0,
   );
   const liveCurrentValue = allHoldings.reduce(
     (sum, h) => sum + (h.liveCurrentValue || 0),
-    0
+    0,
   );
   const liveTotalPnL = liveCurrentValue - liveTotalInvested;
   const liveTotalPnLPercent =
@@ -268,7 +326,7 @@ export default function PortfolioPage() {
             Track your investments and performance
           </p>
           {lastUpdated && (
-            <p className="text-muted-foreground text-xs mt-1">
+            <p className="text-muted-foreground mt-1 text-xs">
               Last updated: {lastUpdated.toLocaleTimeString("en-IN")}
               {fetchingLivePrices && (
                 <span className="ml-2 animate-pulse">● Updating...</span>
@@ -460,6 +518,9 @@ export default function PortfolioPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
+                    <th className="px-4 py-3 text-left font-medium">
+                      <div className="w-6" /> {/* Space for expand icon */}
+                    </th>
                     <th className="px-4 py-3 text-left font-medium">Stock</th>
                     <th className="px-4 py-3 text-right font-medium">Qty</th>
                     <th className="px-4 py-3 text-right font-medium">
@@ -483,91 +544,194 @@ export default function PortfolioPage() {
                 <tbody>
                   {displayHoldings.map((holding) => {
                     // Use live P&L if available, fallback to stored values
-                    const pnl = holding.livePnL ?? parseFloat(holding.unrealizedPnL || "0");
-                    const pnlPercent = holding.livePnLPercent ?? holding.unrealizedPnLPerc ?? 0;
-                    const currentPrice = holding.livePrice ?? parseFloat(holding.currentPrice || "0");
-                    const currentValue = holding.liveCurrentValue ?? parseFloat(holding.currentValue || "0");
+                    const pnl =
+                      holding.livePnL ??
+                      parseFloat(holding.unrealizedPnL || "0");
+                    const pnlPercent =
+                      holding.livePnLPercent ?? holding.unrealizedPnLPerc ?? 0;
+                    const currentPrice =
+                      holding.livePrice ??
+                      parseFloat(holding.currentPrice || "0");
+                    const currentValue =
+                      holding.liveCurrentValue ??
+                      parseFloat(holding.currentValue || "0");
                     const isProfitable = pnl >= 0;
 
                     return (
-                      <tr
-                        key={holding.id}
-                        className="hover:bg-accent/50 border-b"
-                      >
-                        <td className="px-4 py-3">
-                          <Link
-                            href={`/stocks/${holding.stockSymbol}?exchange=${holding.exchange}`}
-                            className="hover:underline"
-                          >
-                            <div className="flex items-center gap-2">
-                              <div className="font-medium">
-                                {holding.stockSymbol}
+                      <>
+                        <tr
+                          key={holding.id}
+                          className="hover:bg-accent/50 border-b"
+                        >
+                          <td className="px-4 py-3">
+                            <button
+                              onClick={() => toggleExpanded(holding)}
+                              className="text-muted-foreground hover:text-foreground transition-colors"
+                              title="Show purchase lots"
+                            >
+                              {expandedHoldings[holding.id] ? (
+                                <ChevronDown className="h-4 w-4" />
+                              ) : (
+                                <ChevronRight className="h-4 w-4" />
+                              )}
+                            </button>
+                          </td>
+                          <td className="px-4 py-3">
+                            <Link
+                              href={`/stocks/${holding.stockSymbol}?exchange=${holding.exchange}`}
+                              className="hover:underline"
+                            >
+                              <div className="flex items-center gap-2">
+                                <div className="font-medium">
+                                  {holding.stockSymbol}
+                                </div>
+                                <span
+                                  className={cn(
+                                    "rounded-full px-2 py-0.5 text-xs font-medium",
+                                    holding.product === "CNC"
+                                      ? "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
+                                      : "bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300",
+                                  )}
+                                >
+                                  {holding.product}
+                                </span>
                               </div>
-                              <span
-                                className={cn(
-                                  "rounded-full px-2 py-0.5 text-xs font-medium",
-                                  holding.product === "CNC"
-                                    ? "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
-                                    : "bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300",
-                                )}
-                              >
-                                {holding.product}
-                              </span>
+                              <div className="text-muted-foreground text-xs">
+                                {holding.stockName}
+                              </div>
+                              <div className="text-muted-foreground text-xs">
+                                {holding.exchange}
+                              </div>
+                            </Link>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            {holding.quantity}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            {formatCurrency(holding.averagePrice)}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            {formatCurrency(currentPrice)}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            {formatCurrency(holding.totalInvested)}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            {formatCurrency(currentValue)}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <div
+                              className={cn(
+                                "font-medium",
+                                isProfitable ? "text-green-600" : "text-red-600",
+                              )}
+                            >
+                              {isProfitable ? "+" : ""}
+                              {formatCurrency(pnl)}
                             </div>
-                            <div className="text-muted-foreground text-xs">
-                              {holding.stockName}
+                            <div
+                              className={cn(
+                                "text-xs",
+                                isProfitable ? "text-green-600" : "text-red-600",
+                              )}
+                            >
+                              {isProfitable ? "+" : ""}
+                              {formatDecimal(pnlPercent, 2)}%
                             </div>
-                            <div className="text-muted-foreground text-xs">
-                              {holding.exchange}
-                            </div>
-                          </Link>
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          {holding.quantity}
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          {formatCurrency(holding.averagePrice)}
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          {formatCurrency(currentPrice)}
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          {formatCurrency(holding.totalInvested)}
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          {formatCurrency(currentValue)}
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <div
-                            className={cn(
-                              "font-medium",
-                              isProfitable ? "text-green-600" : "text-red-600",
-                            )}
-                          >
-                            {isProfitable ? "+" : ""}
-                            {formatCurrency(pnl)}
-                          </div>
-                          <div
-                            className={cn(
-                              "text-xs",
-                              isProfitable ? "text-green-600" : "text-red-600",
-                            )}
-                          >
-                            {isProfitable ? "+" : ""}
-                            {formatDecimal(pnlPercent, 2)}%
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleSellClick(holding)}
-                            className="text-red-600 hover:bg-red-50 hover:text-red-700"
-                          >
-                            Sell
-                          </Button>
-                        </td>
-                      </tr>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleSellClick(holding)}
+                              className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                            >
+                              Sell
+                            </Button>
+                          </td>
+                        </tr>
+
+                        {/* Nested Purchase Lots */}
+                        {expandedHoldings[holding.id] && (
+                          <tr className="bg-accent/30">
+                            <td colSpan={9} className="px-4 py-3">
+                              {lotsLoading[holding.id] ? (
+                                <div className="flex items-center justify-center py-4">
+                                  <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                                  <span className="text-sm text-muted-foreground">
+                                    Loading purchase history...
+                                  </span>
+                                </div>
+                              ) : purchaseLotsCache[holding.id] && purchaseLotsCache[holding.id].length > 0 ? (
+                                <div className="ml-8">
+                                  <h4 className="text-sm font-semibold mb-2 text-muted-foreground">
+                                    Purchase History ({purchaseLotsCache[holding.id].length} {purchaseLotsCache[holding.id].length === 1 ? 'lot' : 'lots'})
+                                  </h4>
+                                  <table className="w-full text-sm">
+                                    <thead>
+                                      <tr className="border-b border-border/50">
+                                        <th className="py-2 text-left font-medium text-muted-foreground">Date</th>
+                                        <th className="py-2 text-right font-medium text-muted-foreground">Qty</th>
+                                        <th className="py-2 text-right font-medium text-muted-foreground">Purchase Price</th>
+                                        <th className="py-2 text-right font-medium text-muted-foreground">Invested</th>
+                                        <th className="py-2 text-right font-medium text-muted-foreground">Current Value</th>
+                                        <th className="py-2 text-right font-medium text-muted-foreground">P&L</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {purchaseLotsCache[holding.id].map((lot) => {
+                                        // Recalculate with LIVE price from main holding
+                                        const liveCurrentPrice = holding.livePrice ?? parseFloat(holding.currentPrice);
+                                        const lotCurrentValue = liveCurrentPrice * lot.quantity;
+                                        const lotInvested = parseFloat(lot.totalInvested);
+                                        const lotPnl = lotCurrentValue - lotInvested;
+                                        const lotPnlPercent = lotInvested > 0 ? (lotPnl / lotInvested) * 100 : 0;
+                                        const isLotProfitable = lotPnl >= 0;
+
+                                        return (
+                                          <tr key={lot.id} className="border-b border-border/30">
+                                            <td className="py-2 text-left text-muted-foreground">
+                                              {new Date(lot.purchaseDate).toLocaleDateString('en-IN', {
+                                                day: '2-digit',
+                                                month: 'short',
+                                                year: 'numeric',
+                                                hour: '2-digit',
+                                                minute: '2-digit',
+                                              })}
+                                            </td>
+                                            <td className="py-2 text-right">{lot.quantity}</td>
+                                            <td className="py-2 text-right">{formatCurrency(lot.purchasePrice)}</td>
+                                            <td className="py-2 text-right">{formatCurrency(lot.totalInvested)}</td>
+                                            <td className="py-2 text-right">{formatCurrency(lotCurrentValue)}</td>
+                                            <td className="py-2 text-right">
+                                              <div className={cn(
+                                                "font-medium",
+                                                isLotProfitable ? "text-green-600" : "text-red-600"
+                                              )}>
+                                                {isLotProfitable ? "+" : ""}{formatCurrency(lotPnl)}
+                                              </div>
+                                              <div className={cn(
+                                                "text-xs",
+                                                isLotProfitable ? "text-green-600" : "text-red-600"
+                                              )}>
+                                                {isLotProfitable ? "+" : ""}{formatDecimal(lotPnlPercent, 2)}%
+                                              </div>
+                                            </td>
+                                          </tr>
+                                        );
+                                      })}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              ) : (
+                                <div className="text-sm text-muted-foreground text-center py-2">
+                                  No purchase history found
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        )}
+                      </>
                     );
                   })}
                 </tbody>
@@ -589,7 +753,9 @@ export default function PortfolioPage() {
             symbol: selectedHolding.stockSymbol,
             name: selectedHolding.stockName,
             exchange: selectedHolding.exchange,
-            currentPrice: selectedHolding.livePrice ?? parseFloat(selectedHolding.currentPrice || "0"),
+            currentPrice:
+              selectedHolding.livePrice ??
+              parseFloat(selectedHolding.currentPrice || "0"),
             isin: selectedHolding.isin,
           }}
           holding={{

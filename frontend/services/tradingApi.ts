@@ -114,6 +114,40 @@ export interface TransactionHistoryResponse {
   };
 }
 
+export interface PurchaseLot {
+  id: string;
+  quantity: number;
+  purchasePrice: string;
+  totalInvested: string;
+  netAmount: string;
+  brokerage: string;
+  taxes: string;
+  totalCharges: string;
+  currentPrice: string;
+  currentValue: string;
+  pnl: string;
+  pnlPercent: string;
+  purchaseDate: string;
+  createdAt: string;
+}
+
+export interface PurchaseLotsResponse {
+  stockSymbol: string;
+  exchange: string;
+  product: ProductType;
+  currentPrice: string;
+  purchaseLots: PurchaseLot[];
+  summary: {
+    totalLots: number;
+    totalQuantity: number;
+    averagePrice: string;
+    totalInvested: string;
+    totalCurrentValue: string;
+    totalPnL: string;
+    totalPnLPercent: string;
+  };
+}
+
 /**
  * Buy stocks - Place a market buy order
  */
@@ -156,5 +190,19 @@ export const getTransactionHistory = async (
  */
 export const getPortfolio = async (): Promise<PortfolioResponse> => {
   const response = await ApiClient.get("/trading/portfolio");
+  return response.data.data;
+};
+
+/**
+ * Get individual purchase lots for a specific holding
+ */
+export const getPurchaseLots = async (
+  stockSymbol: string,
+  exchange: string,
+  product: ProductType
+): Promise<PurchaseLotsResponse> => {
+  const response = await ApiClient.get(
+    `/trading/purchase-lots/${stockSymbol}/${exchange}/${product}`
+  );
   return response.data.data;
 };
