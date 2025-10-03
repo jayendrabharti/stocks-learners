@@ -22,9 +22,6 @@ export default function IndicesCard() {
     const fetchMajorIndices = async () => {
       try {
         const data = await getMajorIndices();
-        console.log("IndicesCard - Raw data received:", data);
-        console.log("IndicesCard - Is array:", Array.isArray(data));
-        console.log("IndicesCard - Data length:", data?.length);
 
         // Ensure data is an array
         if (!data || !Array.isArray(data)) {
@@ -35,33 +32,17 @@ export default function IndicesCard() {
         }
 
         if (data.length === 0) {
-          console.warn("IndicesCard - Received empty array");
           setIndices([]);
           return;
         }
 
-        // Log each index
-        data.forEach((item, idx) => {
-          console.log(
-            `Index ${idx}:`,
-            item?.header?.searchId,
-            item?.header?.displayName,
-          );
-        });
-
-        // Since the backend should return unique indices, let's just use the data directly
-        // Only deduplicate if there are actual duplicates
+        // Deduplicate indices by searchId if needed
         const searchIds = data.map((item) => item.header.searchId);
         const hasDuplicates = new Set(searchIds).size !== searchIds.length;
 
         if (hasDuplicates) {
-          console.warn("IndicesCard - Duplicates detected, deduplicating...");
           const uniqueIndices = data.reduce((acc, current) => {
             if (!current?.header?.searchId) {
-              console.warn(
-                "IndicesCard - Skipping item without searchId:",
-                current,
-              );
               return acc;
             }
 
@@ -71,22 +52,12 @@ export default function IndicesCard() {
 
             if (!exists) {
               acc.push(current);
-            } else {
-              console.log(
-                "IndicesCard - Duplicate found:",
-                current.header.searchId,
-              );
             }
             return acc;
           }, [] as IndexData[]);
 
-          console.log(
-            "IndicesCard - After deduplication:",
-            uniqueIndices.length,
-          );
           setIndices(uniqueIndices);
         } else {
-          console.log("IndicesCard - No duplicates, using data as-is");
           setIndices(data);
         }
       } catch (error) {

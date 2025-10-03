@@ -56,17 +56,10 @@ export const getIndices = async (
 
 export const getMajorIndices = async (): Promise<IndexData[]> => {
   try {
-    console.log("API - Fetching major indices...");
     const response =
       await ApiClient.get<ApiResponse<IndexData[]>>("/api/indices/major");
-    console.log("API - Response received:", response);
-    console.log("API - Response data:", response.data);
-    console.log("API - Response data.data:", response.data.data);
-    console.log("API - Is array:", Array.isArray(response.data.data));
-    console.log("API - Array length:", response.data.data?.length);
 
     const result = response.data.data || [];
-    console.log("API - Returning:", result.length, "indices");
     return result;
   } catch (error) {
     console.error("API - Error fetching major indices:", error);

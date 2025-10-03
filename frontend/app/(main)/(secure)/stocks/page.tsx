@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import { StockSearch } from "@/components/trading/StockSearch";
 import { Watchlist } from "@/components/trading/Watchlist";
-import { WatchlistButton } from "@/components/trading/WatchlistButton";
 import IndicesCard from "@/components/indices/IndicesCard";
 import { useWallet } from "@/hooks/useWallet";
 import { usePortfolio } from "@/providers/PortfolioProvider";
@@ -34,173 +33,13 @@ import {
   MostBoughtStock,
   formatCurrency,
   formatNumber,
-  calculateChangePercent,
   isMarketOpen,
   MarketTimingResponse,
 } from "@/services/marketApi";
 import { SearchSkeleton } from "@/components/ui/SearchSkeleton";
+import { MarketStockCard } from "@/components/trading";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-
-// StockCard component for consistent stock display
-interface StockCardProps {
-  stock: Stock | MostBoughtStock;
-  type?: "gainer" | "loser" | "volume" | "popular";
-  size?: "sm" | "md";
-}
-
-function StockCard({ stock, type = "gainer", size = "md" }: StockCardProps) {
-  let displayData;
-  let changePercent: number;
-  let change: number;
-  let price: number;
-  let symbol: string;
-  let companyName: string;
-  let logo: string;
-
-  // Handle different stock types
-  if ("company" in stock) {
-    // MostBoughtStock type
-    displayData = stock.stats;
-    changePercent = stock.stats.dayChangePerc;
-    change = stock.stats.dayChange;
-    price = stock.stats.ltp;
-    symbol = stock.company.companyShortName;
-    companyName = stock.company.companyName;
-    logo = stock.company.imageUrl; // Keep original API data
-  } else {
-    // Stock type
-    changePercent = calculateChangePercent(stock.ltp, stock.close);
-    change = stock.ltp - stock.close;
-    price = stock.ltp;
-    symbol = stock.companyShortName || stock.nseScriptCode;
-    companyName = stock.companyName;
-    logo = stock.logoUrl; // Keep original API data
-  }
-
-  const isPositive = change >= 0;
-  const isNeutral = change === 0;
-
-  // Use nseScriptCode for navigation instead of searchId
-  const stockId =
-    "company" in stock ? stock.company.nseScriptCode : stock.nseScriptCode;
-
-  return (
-    <Card
-      className={cn(
-        "group border-border/50 hover:border-border transition-all duration-200 hover:shadow-lg",
-        size === "sm" ? "p-3" : "p-4",
-      )}
-    >
-      <CardContent className={size === "sm" ? "p-3" : "p-4"}>
-        <Link href={`/stocks/${stockId}`} className="block">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex min-w-0 flex-1 items-center gap-3">
-              <div
-                className={cn(
-                  "bg-muted flex-shrink-0 overflow-hidden rounded-full",
-                  size === "sm" ? "h-8 w-8" : "h-10 w-10",
-                )}
-              >
-                <img
-                  src={logo}
-                  alt={symbol}
-                  className="h-full w-full object-cover"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = "none";
-                    const fallback = target.nextElementSibling as HTMLElement;
-                    if (fallback) fallback.classList.remove("hidden");
-                  }}
-                />
-                <div className="bg-muted text-muted-foreground hidden h-full w-full items-center justify-center text-xs font-medium">
-                  {symbol.slice(0, 2)}
-                </div>
-              </div>
-              <div className="min-w-0 flex-1">
-                <div
-                  className={cn(
-                    "text-foreground group-hover:text-primary truncate font-semibold transition-colors",
-                    size === "sm" ? "text-sm" : "text-base",
-                  )}
-                >
-                  {symbol}
-                </div>
-                <div
-                  className={cn(
-                    "text-muted-foreground truncate",
-                    size === "sm" ? "text-xs" : "text-sm",
-                  )}
-                >
-                  {companyName}
-                </div>
-                {type === "volume" && "volume" in stock && stock.volume && (
-                  <div className="text-chart-4 mt-1 text-xs">
-                    Vol: {formatNumber(stock.volume)}
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="flex-shrink-0 text-right">
-                <div
-                  className={cn(
-                    "text-foreground font-semibold",
-                    size === "sm" ? "text-sm" : "text-base",
-                  )}
-                >
-                  ₹{price.toFixed(2)}
-                </div>
-                <div
-                  className={cn(
-                    "flex items-center justify-end gap-1 font-medium",
-                    size === "sm" ? "text-xs" : "text-sm",
-                    isNeutral
-                      ? "text-muted-foreground"
-                      : isPositive
-                        ? "text-chart-1"
-                        : "text-destructive",
-                  )}
-                >
-                  {!isNeutral &&
-                    (isPositive ? (
-                      <TrendingUp className="h-3 w-3" />
-                    ) : (
-                      <TrendingDown className="h-3 w-3" />
-                    ))}
-                  <span>
-                    {isPositive ? "+" : ""}
-                    {change.toFixed(2)}
-                  </span>
-                  <span>
-                    ({isPositive ? "+" : ""}
-                    {changePercent.toFixed(2)}%)
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </Link>
-
-        {/* Watchlist Button */}
-        <div className="mt-3 flex justify-end">
-          <WatchlistButton
-            stockData={{
-              stockSymbol: stockId,
-              stockName: companyName,
-              exchange: "NSE", // Default to NSE since most stocks are NSE listed
-              isin: "company" in stock ? stock.company.isin : stock.isin,
-            }}
-            variant="outline"
-            size="sm"
-            showText={true}
-            className="text-xs"
-          />
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
 
 export default function StocksPage() {
   // Market data states
@@ -498,11 +337,11 @@ export default function StocksPage() {
                     <SearchSkeleton key={index} />
                   ))
                 : topGainers.map((stock, index) => (
-                    <StockCard
+                    <MarketStockCard
                       key={stock.searchId || index}
                       stock={stock}
-                      type="gainer"
-                      size="sm"
+                      rank={index + 1}
+                      variant="gainer"
                     />
                   ))}
             </CardContent>
@@ -544,11 +383,11 @@ export default function StocksPage() {
                     <SearchSkeleton key={index} />
                   ))
                 : topLosers.map((stock, index) => (
-                    <StockCard
+                    <MarketStockCard
                       key={stock.searchId || index}
                       stock={stock}
-                      type="loser"
-                      size="sm"
+                      rank={index + 1}
+                      variant="loser"
                     />
                   ))}
             </CardContent>
@@ -591,11 +430,11 @@ export default function StocksPage() {
                     <SearchSkeleton key={index} />
                   ))
                 : mostBought.map((stock, index) => (
-                    <StockCard
+                    <MarketStockCard
                       key={stock.company.searchId || index}
                       stock={stock}
-                      type="popular"
-                      size="sm"
+                      rank={index + 1}
+                      variant="popular"
                     />
                   ))}
             </div>
@@ -636,11 +475,11 @@ export default function StocksPage() {
                     <SearchSkeleton key={index} />
                   ))
                 : volumeShockers.map((stock, index) => (
-                    <StockCard
+                    <MarketStockCard
                       key={stock.searchId || index}
                       stock={stock}
-                      type="volume"
-                      size="sm"
+                      rank={index + 1}
+                      variant="volume"
                     />
                   ))}
             </div>

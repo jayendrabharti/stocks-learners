@@ -10,3 +10,4 @@ export { default as SellStockDialog } from "./SellStockDialog";
 export { default as TradableStockCard } from "./TradableStockCard";
 export { MarketStatus } from "./MarketStatus";
 export { ProductTypeInfo } from "./ProductTypeInfo";
+export { MarketStockCard } from "./MarketStockCard";

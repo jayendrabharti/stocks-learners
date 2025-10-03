@@ -52,10 +52,10 @@ export default function TradableStockCard({
     }
   };
 
-  // For now, we'll just show the buy dialog
-  // Sell will require checking portfolio holdings first
+  // Sell functionality - currently not implemented
+  // TODO: Implement sell dialog with portfolio holdings check
   const handleSell = () => {
-    console.log("Sell functionality requires portfolio integration");
+    // Placeholder for future implementation
   };
 
   return (
