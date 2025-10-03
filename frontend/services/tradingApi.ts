@@ -206,3 +206,49 @@ export const getPurchaseLots = async (
   );
   return response.data.data;
 };
+
+/**
+ * Auto square-off response type
+ */
+export interface AutoSquareOffPosition {
+  stockSymbol: string;
+  stockName: string;
+  exchange: string;
+  quantity: number;
+  buyPrice: number;
+  sellPrice: number;
+  invested: number;
+  sellValue: number;
+  pnl: number;
+  pnlPercent: number;
+  tradeDate: string;
+  squareOffTime: string;
+  actualExecutionTime: string;
+}
+
+export interface AutoSquareOffResponse {
+  squaredOffCount: number;
+  positions: AutoSquareOffPosition[];
+  errors: Array<{
+    stockSymbol: string;
+    reason: string;
+  }>;
+}
+
+/**
+ * Check if user has stale MIS positions (quick check)
+ */
+export const checkStaleMIS = async (): Promise<{ hasStaleMIS: boolean }> => {
+  const response = await ApiClient.get("/trading/check-stale-mis");
+  return response.data.data;
+};
+
+/**
+ * Process auto square-off for stale MIS positions
+ * Squares off all MIS positions from previous trading days at their closing prices
+ */
+export const processAutoSquareOff =
+  async (): Promise<AutoSquareOffResponse> => {
+    const response = await ApiClient.post("/trading/auto-square-off");
+    return response.data.data;
+  };

@@ -218,6 +218,11 @@ model Transaction {
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
   
+  // Auto square-off tracking (for MIS positions)
+  isAutoSquareOff Boolean         @default(false)                 // Whether this was an automatic square-off
+  autoSquareOffTime DateTime?                                     // When position should have been squared (3:30 PM on trade date)
+  actualExecutionTime DateTime?                                   // When auto square-off actually executed (user login time)
+  
   // Optional: Link to trading order if created from order system
   tradingOrderId  String?
   tradingOrder    TradingOrder?   @relation(fields: [tradingOrderId], references: [id])

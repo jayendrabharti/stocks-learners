@@ -5,6 +5,8 @@ import {
   getTransactionHistory,
   getPortfolio,
   getPurchaseLots,
+  checkStaleMIS,
+  processAutoSquareOff,
 } from "../controllers/trading.controller.js";
 import validToken from "../middlewares/validToken.js";
 
@@ -47,5 +49,19 @@ router.get("/portfolio", getPortfolio);
  * @access  Private
  */
 router.get("/purchase-lots/:stockSymbol/:exchange/:product", getPurchaseLots);
+
+/**
+ * @route   GET /api/trading/check-stale-mis
+ * @desc    Check if user has stale MIS positions (quick check)
+ * @access  Private
+ */
+router.get("/check-stale-mis", checkStaleMIS);
+
+/**
+ * @route   POST /api/trading/auto-square-off
+ * @desc    Auto square-off stale MIS positions at historical closing prices
+ * @access  Private
+ */
+router.post("/auto-square-off", processAutoSquareOff);
 
 export default router;

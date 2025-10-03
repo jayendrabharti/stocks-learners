@@ -445,7 +445,7 @@ export default function StocksPage() {
                     className="mt-1"
                   >
                     {portfolioStats.totalPnLPercent >= 0 ? "+" : ""}
-                    {portfolioStats.totalPnLPercent}%
+                    {portfolioStats.totalPnLPercent.toFixed(3)}%
                   </Badge>
                 </div>
               </div>

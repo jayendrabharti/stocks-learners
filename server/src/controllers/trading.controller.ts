@@ -6,6 +6,10 @@ import {
   recalculateWalletMetrics,
 } from "./wallet.controller.js";
 import getGrowwAccessToken from "../groww/getGrowwAccessToken.js";
+import {
+  autoSquareOffStaleMIS,
+  hasStaleMISPositions,
+} from "../utils/autoSquareOff.js";
 
 /**
  * Buy stocks - Place a market buy order (supports CNC and MIS)
@@ -1001,6 +1005,107 @@ export const getPurchaseLots = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: "Failed to fetch purchase lots",
+    });
+  }
+};
+
+/**
+ * Check if user has stale MIS positions
+ * Lightweight endpoint for frontend to quickly check without processing
+ *
+ * @route GET /api/trading/check-stale-mis
+ */
+export const checkStaleMIS = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  try {
+    const userId = (req as any).user?.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized - User not authenticated",
+      });
+    }
+
+    const hasStale = await hasStaleMISPositions(userId);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        hasStaleMIS: hasStale,
+      },
+    });
+  } catch (error) {
+    console.error("Error checking stale MIS positions:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to check stale MIS positions",
+    });
+  }
+};
+
+/**
+ * Process auto square-off for stale MIS positions
+ * This endpoint squares off all MIS positions from previous trading days
+ * at their closing prices (3:30 PM on the trade date)
+ *
+ * How it works (following Groww/Zerodha pattern):
+ * 1. Finds all MIS positions older than today
+ * 2. Fetches historical closing price at 3:30 PM for each position
+ * 3. Creates sell transactions at those closing prices
+ * 4. Updates wallet (releases margin + applies P&L)
+ * 5. Returns summary of squared-off positions
+ *
+ * @route POST /api/trading/auto-square-off
+ */
+export const processAutoSquareOff = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  try {
+    const userId = (req as any).user?.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized - User not authenticated",
+      });
+    }
+
+    console.log(`[API] Auto square-off requested by user ${userId}`);
+
+    // Process all stale MIS positions
+    const result = await autoSquareOffStaleMIS(userId);
+
+    if (result.squaredOffCount === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "No stale MIS positions found",
+        data: {
+          squaredOffCount: 0,
+          positions: [],
+          errors: result.errors,
+        },
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Successfully squared off ${result.squaredOffCount} MIS position(s)`,
+      data: {
+        squaredOffCount: result.squaredOffCount,
+        positions: result.positions,
+        errors: result.errors,
+      },
+    });
+  } catch (error) {
+    console.error("Error processing auto square-off:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to process auto square-off",
+      error: error instanceof Error ? error.message : "Unknown error",
     });
   }
 };
